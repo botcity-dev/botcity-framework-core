@@ -3,8 +3,8 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>dev.botcity</groupId>
-  <artifactId>framework</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <artifactId>botcity-framework</artifactId>
+  <version>1.0</version>
   <packaging>jar</packaging>
 
   <name>framework</name>
@@ -45,38 +45,5 @@
     <artifactId>commons-io</artifactId>
     <version>2.6</version>
 	</dependency>
-	
-	<!--
-	<dependency>
-    <groupId>net.sourceforge.htmlunit</groupId>
-    <artifactId>htmlunit</artifactId>
-    <version>2.27</version>
-	</dependency>
-    -->
-    
-    <dependency>
-    <groupId>org.apache.httpcomponents</groupId>
-    <artifactId>httpclient</artifactId>
-    <version>4.5.13</version>
-	</dependency>
-	
-	<dependency>
-    <groupId>org.apache.httpcomponents</groupId>
-    <artifactId>httpcore</artifactId>
-    <version>4.4.6</version>
-	</dependency>
-	
-	<dependency>
-    <groupId>org.apache.httpcomponents</groupId>
-    <artifactId>httpmime</artifactId>
-    <version>4.5.7</version>
-	</dependency>
-
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>3.8.1</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 </project>

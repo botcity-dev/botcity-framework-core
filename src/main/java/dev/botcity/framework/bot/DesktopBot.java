@@ -403,7 +403,7 @@ public class DesktopBot {
 		sleep(defaultSleepAfterAction);
 	}
 	
-	public void doubleClickLast() {
+	public void doubleclick() {
 		doubleClickRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
 		sleep(defaultSleepAfterAction);
 	}
