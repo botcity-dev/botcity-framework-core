@@ -135,7 +135,7 @@ public class DesktopBot {
 	
 	public boolean clickOn(MarvinImage visualElem) {
 		screenshot();
-		Point p = getElementCoordsCentered(visualElem, 0.95);
+		Point p = getElementCoordsCentered(visualElem, 0.95, false);
 		if(p != null) {
 			mouseMove(p.x, p.y);
 			robot.mousePress(InputEvent.BUTTON1_MASK);
@@ -163,41 +163,88 @@ public class DesktopBot {
 //		return findUntil(visualElem, maxWaitingTime);
 //	}
 	
+	public boolean findText(String elementId,int maxWaitingTime, boolean best) {
+		return findText(elementId, getImageFromMap(elementId), null, maxWaitingTime, best);
+	}
+	
 	public boolean findText(String elementId,int maxWaitingTime) {
 		return findText(elementId, getImageFromMap(elementId), null, maxWaitingTime);
+	}
+	
+	public boolean findText(String elementId, MarvinImage visualElem, int maxWaitingTime, boolean best) {
+		return findText(elementId, visualElem, null, maxWaitingTime, best);
 	}
 	
 	public boolean findText(String elementId, MarvinImage visualElem, int maxWaitingTime) {
 		return findText(elementId, visualElem, null, maxWaitingTime);
 	}
 	
+	public boolean findText(String elementId, Integer threshold, int maxWaitingTime, boolean best) {
+		return findText(elementId, getImageFromMap(elementId), threshold, maxWaitingTime, best);
+	}
+	
 	public boolean findText(String elementId, Integer threshold, int maxWaitingTime) {
 		return findText(elementId, getImageFromMap(elementId), threshold, maxWaitingTime);
 	}
 	
-	public boolean findText(String elementId, MarvinImage visualElem, Integer threshold, int maxWaitingTime) {
+	public boolean findText(String elementId, Integer threshold, double matching, int maxWaitingTime, boolean best) {
+		return findUntil(elementId, getImageFromMap(elementId), threshold, matching, maxWaitingTime, best);
+	}
+	
+	public boolean findText(String elementId, Integer threshold, double matching, int maxWaitingTime) {
+		return findUntil(elementId, getImageFromMap(elementId), threshold, matching, maxWaitingTime);
+	}
+	
+	public boolean findText(String elementId, MarvinImage visualElem, Integer threshold, double matching, int maxWaitingTime, boolean best) {
+		return findUntil(elementId, visualElem, threshold, matching, maxWaitingTime, best);
+	}
+	
+	public boolean findText(String elementId, MarvinImage visualElem, Integer threshold, double matching, int maxWaitingTime) {
+		return findUntil(elementId, visualElem, threshold, matching, maxWaitingTime);
+	}
+	
+	public boolean findText(String elementId, MarvinImage visualElem, Integer threshold, int maxWaitingTime, boolean best) {
 		if(threshold == null) {
-			return findUntil(elementId, visualElem, threshold, 0.9, maxWaitingTime);
+			return findUntil(elementId, visualElem, threshold, 0.9, maxWaitingTime, best);
 		} else {
-			return findUntil(elementId, visualElem, threshold, 0.85, maxWaitingTime);
+			return findUntil(elementId, visualElem, threshold, 0.85, maxWaitingTime, best);
 		}
+	}
+	
+	public boolean findText(String elementId, MarvinImage visualElem, Integer threshold, int maxWaitingTime) {
+		return findText(elementId, visualElem, threshold, maxWaitingTime, false);
+	}
+	
+	public boolean find(String elementId, Double elementMatching, int maxWaitingTime, boolean best) {
+		return find(elementId, getImageFromMap(elementId), elementMatching, maxWaitingTime, best);
 	}
 	
 	public boolean find(String elementId, Double elementMatching, int maxWaitingTime) {
 		return find(elementId, getImageFromMap(elementId), elementMatching, maxWaitingTime);
 	}
 	
+	public boolean find(String elementId, MarvinImage visualElem, Double elementMatching, int maxWaitingTime, boolean best) {
+		return findUntil(elementId, visualElem, null, elementMatching, maxWaitingTime, best);
+	}
+	
 	public boolean find(String elementId, MarvinImage visualElem, Double elementMatching, int maxWaitingTime) {
 		return findUntil(elementId, visualElem, null, elementMatching, maxWaitingTime);
 	}
 	
+	public boolean findUntil(String elementId, Integer threshold, Double elementMatching, int maxWaitingTime, boolean best) {
+		return findUntil(elementId, getImageFromMap(elementId), threshold, elementMatching, maxWaitingTime, best);
+	}
 	
 	public boolean findUntil(String elementId, Integer threshold, Double elementMatching, int maxWaitingTime) {
 		return findUntil(elementId, getImageFromMap(elementId), threshold, elementMatching, maxWaitingTime);
 	}
 	
+	public boolean findUntil(String elementId, MarvinImage visualElem, Integer threshold, Double elementMatching, int maxWaitingTime, boolean best) {
+		return findUntil(elementId, visualElem, null, null, null, null, threshold, elementMatching, maxWaitingTime, best);
+	}
+	
 	public boolean findUntil(String elementId, MarvinImage visualElem, Integer threshold, Double elementMatching, int maxWaitingTime) {
-		return findUntil(elementId, visualElem, null, null, null, null, threshold, elementMatching, maxWaitingTime);
+		return findUntil(elementId, visualElem, null, null, null, null, threshold, elementMatching, maxWaitingTime, false);
 	}
 	
 	public boolean findRelative
@@ -211,9 +258,10 @@ public class DesktopBot {
 		int searchWindowHeight,
 		Integer threshold,
 		Double elementMatching,
-		int maxWaitingTim
+		int maxWaitingTim,
+		boolean best
 	) {
-		return findUntil(elementId, visualElem, anchor.getX()+xDiff, anchor.getY()+yDiff, searchWindowWidth, searchWindowHeight, threshold, elementMatching, maxWaitingTim);
+		return findUntil(elementId, visualElem, anchor.getX()+xDiff, anchor.getY()+yDiff, searchWindowWidth, searchWindowHeight, threshold, elementMatching, maxWaitingTim, best);
 	}
 	
 	public boolean findUntil
@@ -226,7 +274,8 @@ public class DesktopBot {
 		Integer searchWindowHeight,
 		Integer threshold, 
 		Double elementMatching, 
-		int maxWaitingTime
+		int maxWaitingTime,
+		boolean best
 	) {
 		long startTime = System.currentTimeMillis();
 		while(true) {
@@ -258,20 +307,25 @@ public class DesktopBot {
 				MarvinImage visualElemCopy = visualElem.clone();
 				thresholding(visualElemCopy, threshold);
 				
+				p = getElementCoords(visualElemCopy, screenCopy, startX, startY, searchWindowWidth, searchWindowHeight, elementMatching, best);
+				
 				if(debug) {
-					MarvinImageIO.saveImage(screen, "./debug/screen.png");
-					MarvinImageIO.saveImage(visualElem, "./debug/visualElem.png");
-					MarvinImageIO.saveImage(screenCopy, "./debug/screenCopy.png");
-					MarvinImageIO.saveImage(visualElemCopy, "./debug/visualElemCopy.png");
+					long timestamp = System.currentTimeMillis();
+					String match = (p != null ? "true" : "false");
+					MarvinImageIO.saveImage(screen, "./debug/"+timestamp+"_screen"+"_"+match+".png");
+					MarvinImageIO.saveImage(visualElem, "./debug/"+timestamp+"_"+elementId+"_"+match+".png");
+					MarvinImageIO.saveImage(screenCopy, "./debug/"+timestamp+"_screen_bw_"+match+".png");
+					MarvinImageIO.saveImage(visualElemCopy, "./debug/"+timestamp+"_"+elementId+"_bw"+"_"+match+".png");
 				}
 				
-				p = getElementCoords(visualElemCopy, screenCopy, startX, startY, searchWindowWidth, searchWindowHeight, elementMatching);
 			} else {
-				p = getElementCoords(visualElem, startX, startY, searchWindowWidth, searchWindowHeight, elementMatching);
+				p = getElementCoords(visualElem, startX, startY, searchWindowWidth, searchWindowHeight, elementMatching, best);
 				
 				if(debug) {
-					MarvinImageIO.saveImage(screen, "./debug/screenCopy.png");
-					MarvinImageIO.saveImage(visualElem, "./debug/visualElemCopy.png");
+					long timestamp = System.currentTimeMillis();
+					String match = (p != null ? "true" : "false");
+					MarvinImageIO.saveImage(screen, "./debug/"+timestamp+"_screen"+"_"+match+".png");
+					MarvinImageIO.saveImage(visualElem, "./debug/"+timestamp+"_"+elementId+"_"+match+".png");
 				}
 			}
 			
@@ -296,7 +350,7 @@ public class DesktopBot {
 		}
 	}
 	
-	public Point getCoordinates(String elementImage, int maxWaitingTime) {
+	public Point getCoordinates(String elementImage, int maxWaitingTime, boolean best) {
 		long startTime = System.currentTimeMillis();
 		while(true) {
 			
@@ -308,7 +362,7 @@ public class DesktopBot {
 			sleep(300);
 			screenshot();
 			visualElem = MarvinImageIO.loadImage(elementImage);
-			Point p = getElementCoords(visualElem, 0.95);
+			Point p = getElementCoords(visualElem, 0.95, best);
 			
 			if(p != null) {
 				
@@ -357,9 +411,9 @@ public class DesktopBot {
 					MarvinImageIO.saveImage(visualElemCopy, "./debug/visualElemCopy.png");
 				}
 				
-				p = getElementCoords(visualElemCopy, screenCopy, 0.95);
+				p = getElementCoords(visualElemCopy, screenCopy, 0.95, false);
 			} else {
-				p = getElementCoords(visualElemCopy, screenCopy, 0.95);
+				p = getElementCoords(visualElemCopy, screenCopy, 0.95, false);
 			}
 			
 			if(p != null) {
@@ -1192,8 +1246,8 @@ public class DesktopBot {
 		robot.keyRelease(KeyEvent.VK_SHIFT);
 	}
 	
-	private Point getElementCoords(MarvinImage sub, double matching) {
-		return getElementCoords(sub, 0, 0, screen.getWidth(), screen.getHeight(), matching);
+	private Point getElementCoords(MarvinImage sub, double matching, boolean best) {
+		return getElementCoords(sub, 0, 0, screen.getWidth(), screen.getHeight(), matching, best);
 	}
 	
 	private Point getElementCoords
@@ -1203,12 +1257,14 @@ public class DesktopBot {
 		int startY,
 		int searchWindowWidth,
 		int searchWindowHeight,
-		double matching) {
-		return getElementCoords(sub, screen, startX, startY, searchWindowWidth, searchWindowHeight, matching);
+		double matching,
+		boolean best
+	) {
+		return getElementCoords(sub, screen, startX, startY, searchWindowWidth, searchWindowHeight, matching, best);
 	}
 	
-	private Point getElementCoords(MarvinImage sub, MarvinImage screen, double matching) {
-		return getElementCoords(sub, screen, 0, 0, screen.getWidth(), screen.getHeight(), matching);
+	private Point getElementCoords(MarvinImage sub, MarvinImage screen, double matching, boolean best) {
+		return getElementCoords(sub, screen, 0, 0, screen.getWidth(), screen.getHeight(), matching, best);
 	}
 	
 	private Point getElementCoords
@@ -1219,10 +1275,11 @@ public class DesktopBot {
 			int startY,
 			int searchWindowWidth,
 			int searchWindowHeight,
-			double matching
+			double matching,
+			boolean best
 	) {
 		long time=System.currentTimeMillis();
-		MarvinSegment seg = findSubimage(sub, screen, startX, startY, searchWindowWidth, searchWindowHeight, matching, false);
+		MarvinSegment seg = findSubimage(sub, screen, startX, startY, searchWindowWidth, searchWindowHeight, matching, best);
 		//System.out.println("search time:"+(System.currentTimeMillis()-time));
 		
 		if(seg != null) {
@@ -1231,8 +1288,8 @@ public class DesktopBot {
 		return null;
 	}
 	
-	private Point getElementCoordsCentered(MarvinImage sub, double matching) {
-		Point p = getElementCoords(sub, matching);
+	private Point getElementCoordsCentered(MarvinImage sub, double matching, boolean best) {
+		Point p = getElementCoords(sub, matching, best);
 		
 		if(p != null) {
 			int x = p.x + (sub.getWidth() / 2);
@@ -1252,9 +1309,9 @@ public class DesktopBot {
 		int startX,
 		int startY,
 		Double similarity,
-		boolean findAll
+		boolean findBest
 	) {
-		return findSubimage(subimage, imageIn, startX, startY, imageIn.getWidth(), imageIn.getHeight(), similarity, findAll);
+		return findSubimage(subimage, imageIn, startX, startY, imageIn.getWidth(), imageIn.getHeight(), similarity, findBest);
 	}
 	
 	
@@ -1267,11 +1324,15 @@ public class DesktopBot {
 		int searchWindowWidth,
 		int searchWindowHeight,
 		Double similarity,
-		boolean findAll
+		boolean findBest
 	) {
 		List<MarvinSegment> segments = new ArrayList<MarvinSegment>();
 		int subImagePixels = subimage.getWidth()*subimage.getHeight();
 		boolean[][] processed=new boolean[imageIn.getWidth()][imageIn.getHeight()];
+		
+		double currScore;
+		double bestScore=0;
+		MarvinSegment bestSegment=null;
 		
 		int r1,g1,b1,r2,g2,b2;
 		// Full image
@@ -1324,28 +1385,21 @@ public class DesktopBot {
 				}
 				
 				if(match){
-					segments.add(new MarvinSegment(x,y,x+subimage.getWidth(), y+subimage.getHeight()));
 					
-					if(!findAll){
-						break mainLoop;
-					}
+					currScore = 1.0 - ((double)notMatched / subImagePixels);
 					
-					for(int i=0; i<subimage.getHeight(); i++){
-						for(int j=0; j<subimage.getWidth(); j++){
-							processed[x+j][y+i]=true;
+					if(!findBest)
+						return new MarvinSegment(x,y,x+subimage.getWidth(), y+subimage.getHeight());
+					else {
+						if(currScore >= bestScore) {
+							bestScore = currScore;
+							bestSegment = new MarvinSegment(x,y,x+subimage.getWidth(), y+subimage.getHeight());
 						}
 					}
-					
 				}
 			}
 		}
 		
-		if(!segments.isEmpty()) {
-			if(!findAll) {
-				return segments.get(0);
-			}
-		}
-		
-		return null;
+		return bestSegment;
 	}
 }

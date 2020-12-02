@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>dev.botcity</groupId>
-  <artifactId>botcity-framework</artifactId>
+  <artifactId>botcity-framework-core</artifactId>
   <version>1.0</version>
   <packaging>jar</packaging>
 
