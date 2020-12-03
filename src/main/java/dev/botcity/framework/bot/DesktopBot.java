@@ -281,14 +281,11 @@ public class DesktopBot {
 		while(true) {
 			
 			if(System.currentTimeMillis() - startTime > maxWaitingTime) {
-//				System.out.println("false");
 				return false;
 			}
 			
 			sleep(100);
 			screenshot();
-			
-//			System.out.println("Threshold:"+threshold);
 			
 			Point p=null;
 			
@@ -312,9 +309,9 @@ public class DesktopBot {
 				if(debug) {
 					long timestamp = System.currentTimeMillis();
 					String match = (p != null ? "true" : "false");
-					MarvinImageIO.saveImage(screen, "./debug/"+timestamp+"_screen"+"_"+match+".png");
+					MarvinImageIO.saveImage(screen, "./debug/"+timestamp+"_screen"+"_"+elementId+"_"+match+".png");
 					MarvinImageIO.saveImage(visualElem, "./debug/"+timestamp+"_"+elementId+"_"+match+".png");
-					MarvinImageIO.saveImage(screenCopy, "./debug/"+timestamp+"_screen_bw_"+match+".png");
+					MarvinImageIO.saveImage(screenCopy, "./debug/"+timestamp+"_screen_bw_"+elementId+"_"+match+".png");
 					MarvinImageIO.saveImage(visualElemCopy, "./debug/"+timestamp+"_"+elementId+"_bw"+"_"+match+".png");
 				}
 				
@@ -324,7 +321,7 @@ public class DesktopBot {
 				if(debug) {
 					long timestamp = System.currentTimeMillis();
 					String match = (p != null ? "true" : "false");
-					MarvinImageIO.saveImage(screen, "./debug/"+timestamp+"_screen"+"_"+match+".png");
+					MarvinImageIO.saveImage(screen, "./debug/"+timestamp+"_screen"+"_"+elementId+"_"+match+".png");
 					MarvinImageIO.saveImage(visualElem, "./debug/"+timestamp+"_"+elementId+"_"+match+".png");
 				}
 			}
@@ -343,9 +340,6 @@ public class DesktopBot {
 				lastElement.setImage(this.visualElem);
 				
 				return true;
-			} else {
-				//System.out.println("not found: "+elementImage);
-				//MarvinImageIO.saveImage(screen, "./res/screenshot_"+(id++)+".png");
 			}
 		}
 	}
@@ -355,7 +349,6 @@ public class DesktopBot {
 		while(true) {
 			
 			if(System.currentTimeMillis() - startTime > maxWaitingTime) {
-//				System.out.println("false");
 				return null;
 			}
 			
@@ -370,9 +363,6 @@ public class DesktopBot {
 					System.out.println("found:"+p.x+","+p.y+": "+elementImage);
 				
 				return p;
-			} else {
-				//System.out.println("not found: "+elementImage);
-				//MarvinImageIO.saveImage(screen, "./res/screenshot_"+(id++)+".png");
 			}
 		}
 	}
@@ -386,7 +376,6 @@ public class DesktopBot {
 		while(true) {
 			
 			if(System.currentTimeMillis() - startTime > maxWaitingTime) {
-//				System.out.println("false");
 				return false;
 			}
 			
@@ -425,9 +414,6 @@ public class DesktopBot {
 				this.x = p.x;
 				this.y = screen.getHeight()-(p.y+visualElem.getHeight());
 				return true;
-			} else {
-				//System.out.println("not found: "+elementImage);
-				//MarvinImageIO.saveImage(screen, "./res/screenshot_"+(id++)+".png");
 			}
 		}
 	}
@@ -1240,7 +1226,6 @@ public class DesktopBot {
 		}
 		
 		
-//		System.out.println("char:"+c);
 		robot.keyPress(code);
 		robot.keyRelease(code);
 		robot.keyRelease(KeyEvent.VK_SHIFT);
@@ -1280,7 +1265,6 @@ public class DesktopBot {
 	) {
 		long time=System.currentTimeMillis();
 		MarvinSegment seg = findSubimage(sub, screen, startX, startY, searchWindowWidth, searchWindowHeight, matching, best);
-		//System.out.println("search time:"+(System.currentTimeMillis()-time));
 		
 		if(seg != null) {
 			return new Point(seg.x1,seg.y1);
