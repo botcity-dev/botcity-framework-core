@@ -204,10 +204,14 @@ public class DesktopBot {
 	}
 	
 	public boolean findText(String elementId, MarvinImage visualElem, Integer threshold, int maxWaitingTime, boolean best) {
+		return findText(elementId, visualElem, null, null, null, null, threshold, maxWaitingTime, best);
+	}
+	
+	public boolean findText(String elementId, MarvinImage visualElem, Integer startX, Integer startY, Integer searchWidth, Integer searchHeight, Integer threshold, int maxWaitingTime, boolean best) {
 		if(threshold == null) {
-			return findUntil(elementId, visualElem, threshold, 0.9, maxWaitingTime, best);
+			return findUntil(elementId, visualElem, startX, startY, searchWidth, searchHeight, threshold, 0.9, maxWaitingTime, best);
 		} else {
-			return findUntil(elementId, visualElem, threshold, 0.85, maxWaitingTime, best);
+			return findUntil(elementId, visualElem, startX, startY, searchWidth, searchHeight, threshold, 0.85, maxWaitingTime, best);
 		}
 	}
 	
@@ -223,12 +227,20 @@ public class DesktopBot {
 		return find(elementId, getImageFromMap(elementId), elementMatching, maxWaitingTime);
 	}
 	
+	public boolean find(String elementId, int startX, int startY, int searchWidth, int searchHeight, Double elementMatching, int maxWaitingTime) {
+		return find(elementId, getImageFromMap(elementId), startX, startY, searchWidth, searchHeight, elementMatching, maxWaitingTime);
+	}
+	
 	public boolean find(String elementId, MarvinImage visualElem, Double elementMatching, int maxWaitingTime, boolean best) {
 		return findUntil(elementId, visualElem, null, elementMatching, maxWaitingTime, best);
 	}
 	
 	public boolean find(String elementId, MarvinImage visualElem, Double elementMatching, int maxWaitingTime) {
 		return findUntil(elementId, visualElem, null, elementMatching, maxWaitingTime);
+	}
+	
+	public boolean find(String elementId, MarvinImage visualElem, int startX, int startY, int searchWidth, int searchHeight, Double elementMatching, int maxWaitingTime) {
+		return findUntil(elementId, visualElem, startX, startY, searchWidth, searchHeight, null, elementMatching, maxWaitingTime);
 	}
 	
 	public boolean findUntil(String elementId, Integer threshold, Double elementMatching, int maxWaitingTime, boolean best) {
@@ -246,6 +258,17 @@ public class DesktopBot {
 	public boolean findUntil(String elementId, MarvinImage visualElem, Integer threshold, Double elementMatching, int maxWaitingTime) {
 		return findUntil(elementId, visualElem, null, null, null, null, threshold, elementMatching, maxWaitingTime, false);
 	}
+	
+	public boolean findUntil(String elementId, MarvinImage visualElem, int startX, int startY, Integer threshold, Double elementMatching, int maxWaitingTime) {
+		return findUntil(elementId, visualElem, null, null, null, null, threshold, elementMatching, maxWaitingTime, false);
+	}
+	
+	public boolean findUntil(String elementId, MarvinImage visualElem, int startX, int startY, int searchWidth, int searchHeight, Integer threshold, Double elementMatching, int maxWaitingTime) {
+		return findUntil(elementId, visualElem, startX, startY, searchWidth, searchHeight, threshold, elementMatching, maxWaitingTime, false);
+	}
+	
+	
+	
 	
 	public boolean findRelative
 	(
