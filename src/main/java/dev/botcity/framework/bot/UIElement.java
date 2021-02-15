@@ -2,6 +2,11 @@ package dev.botcity.framework.bot;
 
 import org.marvinproject.framework.image.MarvinImage;
 
+/**
+ * UI element representation model.
+ * @author Gabriel Ambrósio Archanjo
+ *
+ */
 public class UIElement {
 
 	private MarvinImage image;

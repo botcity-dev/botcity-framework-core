@@ -20,6 +20,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +34,11 @@ import org.marvinproject.framework.io.MarvinImageIO;
 import org.marvinproject.framework.plugin.MarvinImagePlugin;
 import org.marvinproject.plugins.image.transform.flip.Flip;
 
+/**
+ * Provides a robot interface to operate desktop applications.
+ * 
+ * @author Gabriel Ambrósio Archanjo
+ */
 public class DesktopBot {
 
 	private Robot 						robot;
@@ -72,11 +78,21 @@ public class DesktopBot {
 		this.debug = true;
 	}
 	
+	/**
+	 * Set classloader for loading resources exported in JAR files.
+	 * @param classloader
+	 */
 	public void setResourceClassLoader(ClassLoader classloader) {
 		this.resourceClassLoader = classloader;
 	}
 	
-	public void addImage(String label, String path) {
+	/**
+	 * Add image of UI element to be recognized in automation processes. Check method find() and findText() to recognize such elements.
+	 * @param label
+	 * @param path
+	 * @throws IOException
+	 */
+	public void addImage(String label, String path) throws IOException {
 		File f = new File(path);
 		
 		// file outside jar?
@@ -84,12 +100,23 @@ public class DesktopBot {
 			mapImages.put(label, MarvinImageIO.loadImage(path));
 		else {
 			if(this.resourceClassLoader != null) {
-				ImageIcon img = new ImageIcon(this.resourceClassLoader.getResource(path));
-				mapImages.put("label", new MarvinImage(toBufferedImage(img.getImage())));
+				URL url = this.resourceClassLoader.getResource(path);
+				if(url != null) {
+					ImageIcon img = new ImageIcon(url);
+					mapImages.put(label, new MarvinImage(toBufferedImage(img.getImage())));
+				} else {
+					throw new IOException("Image File not found! Label: "+label+", path:"+path);
+				}
 			}
 		}
 	}
 	
+	/**
+	 * Add image of UI element to be recognized in automation processes. Check method find() and findText() to recognize such elements.
+	 * @param label
+	 * @param path
+	 * @throws IOException
+	 */
 	public void addImage(String label, MarvinImage image) {
 		mapImages.put(label, image);
 	}
@@ -117,14 +144,28 @@ public class DesktopBot {
 		return this.robot;
 	}
 	
+	/**
+	 * Returns the last recognized UI element. In other words, the last element found by find() and findText()
+	 * @return
+	 */
 	public UIElement getLastElement() {
 		return this.lastElement;
 	}
 	
+	/**
+	 * Command line execution used to run commands or start applications.
+	 * @param command
+	 * @throws IOException
+	 */
 	public void exec(String command) throws IOException {
 		Runtime.getRuntime().exec(command);
 	}
 	
+	/**
+	 * Invoke the default browser passing a URL
+	 * @param uri
+	 * @throws IOException
+	 */
 	public void browse(String uri) throws IOException {
 		try {
 			Desktop.getDesktop().browse(new URI(uri));
@@ -163,10 +204,23 @@ public class DesktopBot {
 //		return findUntil(visualElem, maxWaitingTime);
 //	}
 	
+	/**
+	 * Find a text element in the UI. Text elements are processed in black and white. Therefore, avoid using this method for texts in colored backgrounds.
+	 * @param elementId 		element to be found
+	 * @param maxWaitingTime 	maximum time for searching the element on the UI
+	 * @param best 				return the best element? Search in the entire UI. If false, returns the first element that matches the criteria.
+	 * @return					true if the UI element was found, false otherwise
+	 */
 	public boolean findText(String elementId,int maxWaitingTime, boolean best) {
 		return findText(elementId, getImageFromMap(elementId), null, maxWaitingTime, best);
 	}
 	
+	/**
+	 * Find a text element in the UI. Text elements are processed in black and white. Therefore, avoid using this method for texts in colored backgrounds.
+	 * @param elementId 		element to be found
+	 * @param maxWaitingTime 	maximum time for searching the element on the UI
+	 * @return					true if the UI element was found, false otherwise
+	 */
 	public boolean findText(String elementId,int maxWaitingTime) {
 		return findText(elementId, getImageFromMap(elementId), null, maxWaitingTime);
 	}
@@ -179,18 +233,50 @@ public class DesktopBot {
 		return findText(elementId, visualElem, null, maxWaitingTime);
 	}
 	
+	/**
+	 * Find a text element in the UI. Text elements are processed in black and white. Therefore, avoid using this method for texts in colored backgrounds.
+	 * @param elementId 		element to be found
+	 * @param threshold 		grayscale threshold for black and white processing
+	 * @param maxWaitingTime 	maximum time for searching the element on the UI
+	 * @param best 				Search in the entire UI for the best match or returns the first element that matches the criteria.
+	 * @return					true if the UI element was found, false otherwise
+	 */
 	public boolean findText(String elementId, Integer threshold, int maxWaitingTime, boolean best) {
 		return findText(elementId, getImageFromMap(elementId), threshold, maxWaitingTime, best);
 	}
 	
+	/**
+	 * Find a text element in the UI. Text elements are processed in black and white. Therefore, avoid using this method for texts in colored backgrounds.
+	 * @param elementId 		element to be found
+	 * @param threshold 		grayscale threshold for black and white processing
+	 * @param maxWaitingTime 	maximum time for searching the element on the UI
+	 * @return					true if the UI element was found, false otherwise
+	 */
 	public boolean findText(String elementId, Integer threshold, int maxWaitingTime) {
 		return findText(elementId, getImageFromMap(elementId), threshold, maxWaitingTime);
 	}
 	
+	/**
+	 * Find a text element in the UI. Text elements are processed in black and white. Therefore, avoid using this method for texts in colored backgrounds.
+	 * @param elementId 		element to be found
+	 * @param threshold 		grayscale threshold for black and white processing
+	 * @param matching 			minimum score (0.0 to 1.0) to consider a match in the element image recognition process.
+	 * @param maxWaitingTime 	maximum time for searching the element on the UI
+	 * @param best 				Search in the entire UI for the best match or returns the first element that matches the criteria.
+	 * @return					true if the UI element was found, false otherwise
+	 */
 	public boolean findText(String elementId, Integer threshold, double matching, int maxWaitingTime, boolean best) {
 		return findUntil(elementId, getImageFromMap(elementId), threshold, matching, maxWaitingTime, best);
 	}
 	
+	/**
+	 * Find a text element in the UI. Text elements are processed in black and white. Therefore, avoid using this method for texts in colored backgrounds.
+	 * @param elementId 		element to be found
+	 * @param threshold 		grayscale threshold for black and white processing
+	 * @param matching 			minimum score (0.0 to 1.0) to consider a match in the element image recognition process.
+	 * @param maxWaitingTime 	maximum time for searching the element on the UI
+	 * @return					true if the UI element was found, false otherwise
+	 */
 	public boolean findText(String elementId, Integer threshold, double matching, int maxWaitingTime) {
 		return findUntil(elementId, getImageFromMap(elementId), threshold, matching, maxWaitingTime);
 	}
@@ -461,16 +547,27 @@ public class DesktopBot {
 		
 	}
 	
+	/**
+	 * Click in last found UI element.
+	 */
 	public void click() {
 		clickRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
 		sleep(defaultSleepAfterAction);
 	}
 	
+	/**
+	 * Double-click in last found UI element.
+	 */
 	public void doubleclick() {
 		doubleClickRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
 		sleep(defaultSleepAfterAction);
 	}
 	
+	/**
+	 * Click relative the last found UI element.
+	 * @param x 		horizontal offset to the UI element.
+	 * @param y 		vertical offset to the UI element.
+	 */
 	public void clickRelative(int x, int y) {
 		this.x += x;
 		this.y += y;
@@ -478,15 +575,42 @@ public class DesktopBot {
 		sleep(defaultSleepAfterAction);
 	}
 	
+	/**
+	 * Double-click relative the last found UI element.
+	 * @param x 		horizontal offset to the UI element.
+	 * @param y 		vertical offset to the UI element.
+	 */
 	public void doubleClickRelative(int x, int y) {
+		doubleClickRelative(x, y, 300);
+	}
+	
+	/**
+	 * Double-click relative the last found UI element.
+	 * @param x 					horizontal offset to the UI element.
+	 * @param y 					vertical offset to the UI element.
+	 * @param sleepBetweenClicks	time in ms between individual click events.
+	 */
+	public void doubleClickRelative(int x, int y, int sleepBetweenClicks) {
 		this.x += x;
 		this.y += y;
 		moveAndclick();
-		sleep(300);
+		sleep(sleepBetweenClicks);
 		moveAndclick();
 		sleep(defaultSleepAfterAction);
 	}
 	
+	/**
+	 * Triple-click in last found UI element.
+	 */
+	public void tripleClick() {
+		tripleClickRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
+	}
+	
+	/**
+	 * Triple-click relative the last found UI element.
+	 * @param x 					horizontal offset to the UI element.
+	 * @param y 					vertical offset to the UI element.
+	 */
 	public void tripleClickRelative(int x, int y) {
 		this.x += x;
 		this.y += y;
@@ -498,27 +622,49 @@ public class DesktopBot {
 		sleep(defaultSleepAfterAction);
 	}
 	
+	/**
+	 * Scroll down wheel action.
+	 * @param y wheel actions.
+	 */
 	public void scrollDown(int y) {
 		robot.mouseWheel(y);
 	}
 	
+	/**
+	 * Scroll up wheel action.
+	 * @param y wheel actions.
+	 */
 	public void scrollUp(int y) {
 		robot.mouseWheel(-y);
 	}
 	
+	/**
+	 * Move cursor to the last found element.
+	 */
 	public void move() {
 		moveRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
 	}
 	
+	/**
+	 * Move cursor to an specific coordinate.
+	 * @param x 		coordinate x
+	 * @param y			coordinate y
+	 */
 	public void moveTo(int x, int y) {
 		mouseMove(x, y);
 		this.x = x;
 		this.y = y;
 	}
 	
+	/**
+	 * Move cursor relative the last found UI element.
+	 * @param x			horizontal offset to the UI Element.
+	 * @param y			vertical offset to the UI Element.
+	 */
 	public void moveRelative(int x, int y) {
 		mouseMove(this.x+x, this.y+y);
 	}
+	
 	
 	public void moveRandom(int rangeX, int rangeY) {
 		int x = (int)Math.round((Math.random()*rangeX));
@@ -526,6 +672,10 @@ public class DesktopBot {
 		moveRelative(x, y);
 	}
 	
+	/**
+	 * Type a text, char by char (inividual key events)
+	 * @param text text to be typed.
+	 */
 	public void type(String text) {
 		for(int i=0; i<text.length(); i++) {
 			typeKey(text.charAt(i));
@@ -533,6 +683,11 @@ public class DesktopBot {
 		sleep(defaultSleepAfterAction);
 	}
 	
+	/**
+	 * Type text, char by char, specifying key interval time
+	 * @param text				text to be typed.
+	 * @param waitAfterChars	time interval between key events.
+	 */
 	public void typeWaitAfterChars(String text, int waitAfterChars) {
 		for(int i=0; i<text.length(); i++) {
 			typeKey(text.charAt(i));
@@ -541,25 +696,51 @@ public class DesktopBot {
 		sleep(defaultSleepAfterAction);
 	}
 	
+	/**
+	 * Type text, char by char, specifying key interval time
+	 * @param text				text to be typed.
+	 * @param waitAfterChars	time interval between key events.
+	 * @param waitAfter			sleep interval after event.
+	 */
 	public void typeWaitAfterChars(String text, int waitAfterChars, int waitAfter) {
 		typeWaitAfterChars(text, waitAfterChars);
 		sleep(waitAfter);
 	}
 	
+	/**
+	 * Type text, char by char, specifying key interval time
+	 * @param text				text to be typed.
+	 * @param waitAfterChars	time interval between key events.
+	 * @param waitAfter			sleep interval after event.
+	 */
 	public void type(String text, int waitAfterChars, int waitAfter) {
 		typeWaitAfterChars(text, waitAfterChars);
 		sleep(waitAfter);
 	}
 	
+	/**
+	 * Type text, char by char.
+	 * @param text				text to be typed.
+	 * @param waitAfter			sleep interval after action.
+	 */
 	public void type(String text, int waitAfter) {
 		type(text);
 		sleep(waitAfter);
 	}
 	
+	/**
+	 * Paste content from the clipboard.
+	 * @param text 		content to be pasted.
+	 */
 	public void paste(String text) {
 		paste(text, 0);
 	}
 	
+	/**
+	 * Paste content from the clipboard.
+	 * @param text 			content to be pasted.
+	 * @param waitAfter		sleep interval after action.
+	 */
 	public void paste(String text, int waitAfter) {
 		try {
 			StringSelection selection = new StringSelection(text);
@@ -573,23 +754,32 @@ public class DesktopBot {
 		}
 	}
 	
+	/**
+	 * Copy content to the clipboard
+	 * @param text			content to copy.
+	 * @param waitAfter		sleep interval after action.
+	 */
 	public void copyToClipboard(String text, int waitAfter) {
 		copyToClipboard(text);
 		sleep(waitAfter);
 	}
 	
+	/**
+	 * Copy content to the clipboard
+	 * @param text			content to copy.
+	 */
 	public void copyToClipboard(String text) {
 		StringSelection stringSelection = new StringSelection(text);
 		Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 		clipboard.setContents(stringSelection, null);
 	}
 	
+	
 	private void moveAndclick() {
 		mouseMove(this.x, this.y);
 		
 		robot.mousePress(InputEvent.BUTTON1_MASK);
 		robot.mouseRelease(InputEvent.BUTTON1_MASK);
-		sleep(defaultSleepAfterAction);
 	}
 	
 	private void click(int waitAfter) {
@@ -597,34 +787,55 @@ public class DesktopBot {
 		sleep(waitAfter);
 	}
 	
+	/**
+	 * Press key tab
+	 */
 	public void tab() {
 		robot.keyPress(KeyEvent.VK_TAB);
 		robot.keyRelease(KeyEvent.VK_TAB);
 		sleep(defaultSleepAfterAction);
 	}
 	
+	/**
+	 * Press key "tab"
+	 * @param waitAfter			sleep interval after action.
+	 */
 	public void tab(int waitAfter) {
 		tab();
 		sleep(waitAfter);
 	}
 	
+	/**
+	 * Press key "right"
+	 */
 	public void keyRight() {
 		robot.keyPress(KeyEvent.VK_RIGHT);
 		robot.keyRelease(KeyEvent.VK_RIGHT);
 		sleep(defaultSleepAfterAction);
 	}
 	
+	/**
+	 * Press key "right"
+	 * @param waitAfter			sleep interval after action.
+	 */
 	public void keyRight(int waitAfter) {
 		keyRight();
 		sleep(waitAfter);
 	}
 	
+	/**
+	 * Press key "enter"
+	 */
 	public void enter() {
 		robot.keyPress(KeyEvent.VK_ENTER);
 		robot.keyRelease(KeyEvent.VK_ENTER);
 		sleep(defaultSleepAfterAction);
 	}
 	
+	/**
+	 * Press key "enter"
+	 * @param waitAfter			sleep interval after action.
+	 */
 	public void keyEnter(int waitAfter) {
 		enter();
 		sleep(waitAfter);
@@ -678,19 +889,32 @@ public class DesktopBot {
 	public void keyF11(int waitAfter) 	{	keyF11();	sleep(waitAfter);	}
 	public void keyF12(int waitAfter) 	{	keyF12();	sleep(waitAfter);	}
 	
+	/**
+	 * Hold key "shift"
+	 */
 	public void holdShift() {
 		robot.keyPress(KeyEvent.VK_SHIFT);
 	}
 	
+	/**
+	 * Hold key "shift"
+	 * @param waitAfter			sleep interval after action.
+	 */
 	public void holdShift(int waitAfter) {
 		robot.keyPress(KeyEvent.VK_SHIFT);
 		sleep(waitAfter);
 	}
 	
+	/**
+	 * Release key "shift". Need to be invoked after holdShift() method or similar.
+	 */
 	public void releaseShift() {
 		robot.keyRelease(KeyEvent.VK_SHIFT);
 	}
 	
+	/**
+	 * Shortcut to maximize window on Windows Operating System
+	 */
 	public void maximizeWindow() {
 		altSpace();
 		sleep(1000);
@@ -698,6 +922,10 @@ public class DesktopBot {
 		robot.keyRelease(KeyEvent.VK_X);
 	}
 	
+	/**
+	 * Press a sequence of keys. Hold the keys in the specified order, then release them.
+	 * @param keys			array of key identification values like KeyEvent.VK_ENTER
+	 */
 	public void typeKeys(Integer... keys) {
 		// Press
 		for(int i=0; i<keys.length; i++){
@@ -763,8 +991,6 @@ public class DesktopBot {
 		altU();
 		sleep(waitAfter);
 	}
-	
-	
 	
 	public void altSpace() {
 		robot.keyPress(KeyEvent.VK_ALT);
@@ -969,6 +1195,10 @@ public class DesktopBot {
 		sleep(waitAfter);
 	}
 	
+	/**
+	 * Get the current content in the clipboard.
+	 * @return	content in the clipboard.
+	 */
 	public String getClipboard() {
 		try {
 			Clipboard clip = Toolkit.getDefaultToolkit().getSystemClipboard();
@@ -1049,6 +1279,10 @@ public class DesktopBot {
 		sleep(defaultSleepAfterAction);
 	}
 	
+	/**
+	 * Returns the current screen in MarvinImage format.
+	 * @return			Image of the current screen in MarvinImage format.
+	 */
 	public MarvinImage getScreenShot() {
 		screenshot();
 		return screen;
@@ -1058,6 +1292,14 @@ public class DesktopBot {
 		screen.setBufferedImage(robot.createScreenCapture(new Rectangle(Toolkit.getDefaultToolkit().getScreenSize())));
 	}
 	
+	/**
+	 * Returns a given region of the current screen in MarvinImage format
+	 * @param x			region start position x.
+	 * @param y			region start position y.
+	 * @param width		region's with.
+	 * @param height	region's height.
+	 * @return			Image of the current screen in MarvinImage format.	
+	 */
 	public MarvinImage screenCut(int x, int y, int width, int height) {
 		MarvinImage img = new MarvinImage(robot.createScreenCapture(new Rectangle(Toolkit.getDefaultToolkit().getScreenSize())));
 		MarvinImage imgOut = new MarvinImage(width, height);
@@ -1066,12 +1308,19 @@ public class DesktopBot {
 	}
 	
 	
-	
+	/**
+	 * Saves a screenshot in a given path
+	 * @param path			desired path to save the screenshot.
+	 */
 	public void saveScreenshot(String path) {
 		screenshot();
 		MarvinImageIO.saveImage(screen, path);
 	}
 	
+	/**
+	 * Key "Window" + R shortcut to run commands on windws UI.
+	 * @param command		command to execute.
+	 */
 	public void startRun(String command) {
 		robot.keyPress(KeyEvent.VK_WINDOWS);
 		sleep(1000);
@@ -1090,10 +1339,18 @@ public class DesktopBot {
 		System.out.println(text);
 	}
 	
+	/**
+	 * Wait / Sleep for a given interval.
+	 * @param ms	interval in milliseconds.
+	 */
 	public void wait(int ms) {
 		sleep(ms);
 	}
 	
+	/**
+	 * Wait / Sleep for a given interval.
+	 * @param sleep		interval in milliseconds.
+	 */
 	private void sleep(int sleep) {
 		try {	
 			Thread.sleep(sleep);
