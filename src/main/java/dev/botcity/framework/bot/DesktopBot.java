@@ -926,17 +926,21 @@ public class DesktopBot {
 	 * Press a sequence of keys. Hold the keys in the specified order, then release them.
 	 * @param keys			array of key identification values like KeyEvent.VK_ENTER
 	 */
-	public void typeKeys(Integer... keys) {
+	public void typeKeys(Integer interval, Integer... keys) {
+		typeKeysWithInterval(100, keys);
+	}
+	
+	public void typeKeysWithInterval(Integer interval, Integer... keys) {
 		// Press
 		for(int i=0; i<keys.length; i++){
 			robot.keyPress(keys[i]);
-			sleep(100);
+			sleep(interval);
 		}
 		
 		// release
 		for(int i=keys.length-1; i>=0; i--){
 			robot.keyRelease(keys[i]);
-			sleep(100);
+			sleep(interval);
 		}
 	}
 	
