@@ -65,7 +65,7 @@ public class WebBot {
 	
 	private UIElement					lastElement = new UIElement();
 	
-	private MarvinImagePlugin 			flip;
+	private static MarvinImagePlugin 	flip;
 	
 	private boolean 					debug=false;
 	
@@ -77,29 +77,29 @@ public class WebBot {
 	
 	private Map<String, MarvinImage>	mapImages;
 	
-	private ChromeLauncher launcher;
+	private static ChromeLauncher launcher;
 
-	private ChromeService chromeService;
+	private static ChromeService chromeService;
 
-	public ChromeTab tab;
+	public static ChromeTab tab;
 
-	private ChromeDevToolsService devToolsService;
+	private static ChromeDevToolsService devToolsService;
 
-	private Page page;
+	private static Page page;
 	
-	private Network network;
+	private static Network network;
 	
-	private Input input;
+	private static Input input;
 	
-	private Runtime run;
+	private static Runtime run;
 	
 	private boolean firstTab = true;
 	
-	private List<ChromeTab> tabs = new ArrayList<ChromeTab>();
+	private static List<ChromeTab> tabs = new ArrayList<ChromeTab>();
 	
-	private boolean headless = true;
+	private static boolean headless = true;
 	
-	private String downloadFolderPath = System.getProperty("user.home") + "/Desktop";
+	private static String downloadFolderPath = System.getProperty("user.home") + "/Desktop";
 	
 	public WebBot() {		
 		try {
@@ -396,9 +396,18 @@ public class WebBot {
 		return this.lastElement;
 	}
 	
+	public void redirectTo(String uri){
+		page.navigate(uri);
+	}
+	
 	public void startBrowser() {
-		launcher = new ChromeLauncher();
-		chromeService = launcher.launch(headless);
+		
+		if(launcher == null)
+			launcher = new ChromeLauncher();
+		
+		if(chromeService == null)
+			chromeService = launcher.launch(headless);
+		
 		List<ChromeTab> lstTabs = chromeService.getTabs();
 		if(devToolsService == null) {
 			for(ChromeTab c : lstTabs) {
@@ -407,34 +416,37 @@ public class WebBot {
 				}
 			}
 		}
-		devToolsService = chromeService.createDevToolsService(tab);
-		page = devToolsService.getPage();
-		network = devToolsService.getNetwork();
-		input = devToolsService.getInput();
-		network.enable();
-		run = devToolsService.getRuntime();
-		run.enable();
-		devToolsService.getAccessibility().enable();
-		devToolsService.getApplicationCache().enable();
-		setDownloadFolder(this.downloadFolderPath);
 		
-		List<PermissionType> permissions = new ArrayList<PermissionType>();
-		permissions.add(PermissionType.CLIPBOARD_READ_WRITE);
-		permissions.add(PermissionType.CLIPBOARD_SANITIZED_WRITE);
-		permissions.add(PermissionType.VIDEO_CAPTURE);
-		permissions.add(PermissionType.ACCESSIBILITY_EVENTS);
-		permissions.add(PermissionType.AUDIO_CAPTURE);
-		permissions.add(PermissionType.BACKGROUND_FETCH);
-		permissions.add(PermissionType.BACKGROUND_SYNC);
-		permissions.add(PermissionType.DURABLE_STORAGE);
-		permissions.add(PermissionType.GEOLOCATION);
-		permissions.add(PermissionType.IDLE_DETECTION);
-		permissions.add(PermissionType.MIDI);
-		permissions.add(PermissionType.MIDI_SYSEX);
-		permissions.add(PermissionType.NFC);
-		permissions.add(PermissionType.NOTIFICATIONS);
-		permissions.add(PermissionType.PAYMENT_HANDLER);		
-		devToolsService.getBrowser().grantPermissions(permissions);
+		if(devToolsService == null) {
+			devToolsService = chromeService.createDevToolsService(tab);
+			page = devToolsService.getPage();
+			network = devToolsService.getNetwork();
+			input = devToolsService.getInput();
+			network.enable();
+			run = devToolsService.getRuntime();
+			run.enable();
+			devToolsService.getAccessibility().enable();
+			devToolsService.getApplicationCache().enable();
+			setDownloadFolder(this.downloadFolderPath);
+		
+			List<PermissionType> permissions = new ArrayList<PermissionType>();
+			permissions.add(PermissionType.CLIPBOARD_READ_WRITE);
+			permissions.add(PermissionType.CLIPBOARD_SANITIZED_WRITE);
+			permissions.add(PermissionType.VIDEO_CAPTURE);
+			permissions.add(PermissionType.ACCESSIBILITY_EVENTS);
+			permissions.add(PermissionType.AUDIO_CAPTURE);
+			permissions.add(PermissionType.BACKGROUND_FETCH);
+			permissions.add(PermissionType.BACKGROUND_SYNC);
+			permissions.add(PermissionType.DURABLE_STORAGE);
+			permissions.add(PermissionType.GEOLOCATION);
+			permissions.add(PermissionType.IDLE_DETECTION);
+			permissions.add(PermissionType.MIDI);
+			permissions.add(PermissionType.MIDI_SYSEX);
+			permissions.add(PermissionType.NFC);
+			permissions.add(PermissionType.NOTIFICATIONS);
+			permissions.add(PermissionType.PAYMENT_HANDLER);		
+			devToolsService.getBrowser().grantPermissions(permissions);
+		}
 	}
 	
 	public ChromeDevToolsService navigateTo(String uri){
@@ -1322,11 +1334,11 @@ public class WebBot {
 		viewport.setHeight(height);
 		
 		String data = "";
-//		try {
+		try {
 			data = page.captureScreenshot(CaptureScreenshotFormat.PNG, 100, viewport, Boolean.TRUE);
-//		} catch (Exception e) {
-//			return getScreenImage();
-//		}
+		} catch (Exception e) {
+			return getScreenImage();
+		}
 		
 		BufferedImage image = null;
 		byte[] imageByte;
