@@ -71,6 +71,7 @@ public class DesktopBot {
 		
 		//flip = MarvinPluginLoader.loadImagePlugin("org.marvinproject.image.transform.flip");
 		flip = new Flip();
+		flip.load();
 		flip.setAttribute("flip", "vertical");
 	}
 	
@@ -172,6 +173,10 @@ public class DesktopBot {
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public boolean clickOn(String elementId){
+	    return clickOn(getImageFromMap(elementId));
 	}
 	
 	public boolean clickOn(MarvinImage visualElem) {
@@ -474,6 +479,10 @@ public class DesktopBot {
 				return p;
 			}
 		}
+	}
+	
+	public boolean findLastUntil(String elementId, int maxWaitingTime){
+	     return findLastUntil(elementId, getImageFromMap(elementId), maxWaitingTime);
 	}
 	
 	public boolean findLastUntil(String elementId, MarvinImage visualElem, int maxWaitingTime) {
@@ -1133,6 +1142,11 @@ public class DesktopBot {
 	
 	public void controlEnd(int waitAfter) {
 		controlEnd();
+		sleep(waitAfter);
+	}
+	
+	public void controlHome(int waitAfter) {
+		controlHome();
 		sleep(waitAfter);
 	}
 	
