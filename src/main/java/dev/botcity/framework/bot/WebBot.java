@@ -127,7 +127,7 @@ public class WebBot {
 	
 	private void setDownloadFolder() {
         if(devToolsService != null) {
-        	devToolsService.getBrowser().setDownloadBehavior(SetDownloadBehaviorBehavior.ALLOW, null, downloadFolderPath);
+        	devToolsService.getBrowser().setDownloadBehavior(SetDownloadBehaviorBehavior.ALLOW, null, this.downloadFolderPath);
 		}
 	}
 	
@@ -416,7 +416,7 @@ public class WebBot {
 		run.enable();
 		devToolsService.getAccessibility().enable();
 		devToolsService.getApplicationCache().enable();
-		setDownloadFolder(System.getProperty("user.home") + "/Desktop");
+		setDownloadFolder(this.downloadFolderPath);
 		
 		List<PermissionType> permissions = new ArrayList<PermissionType>();
 		permissions.add(PermissionType.CLIPBOARD_READ_WRITE);
