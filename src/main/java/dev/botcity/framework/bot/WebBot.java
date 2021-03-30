@@ -2,15 +2,12 @@ package dev.botcity.framework.bot;
 import static org.marvinproject.plugins.collection.MarvinPluginCollection.crop;
 import static org.marvinproject.plugins.collection.MarvinPluginCollection.thresholding;
 
-import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
-import java.awt.datatransfer.Transferable;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -18,6 +15,8 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -28,6 +27,7 @@ import java.util.Map;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 
+import org.apache.commons.io.FilenameUtils;
 import org.marvinproject.framework.image.MarvinImage;
 import org.marvinproject.framework.image.MarvinSegment;
 import org.marvinproject.framework.io.MarvinImageIO;
@@ -35,17 +35,16 @@ import org.marvinproject.framework.plugin.MarvinImagePlugin;
 import org.marvinproject.plugins.image.transform.flip.Flip;
 
 import com.github.kklisura.cdt.launch.ChromeLauncher;
-import com.github.kklisura.cdt.protocol.commands.Emulation;
 import com.github.kklisura.cdt.protocol.commands.Input;
 import com.github.kklisura.cdt.protocol.commands.Network;
 import com.github.kklisura.cdt.protocol.commands.Page;
 import com.github.kklisura.cdt.protocol.commands.Runtime;
 import com.github.kklisura.cdt.protocol.types.browser.Bounds;
 import com.github.kklisura.cdt.protocol.types.browser.PermissionType;
+import com.github.kklisura.cdt.protocol.types.browser.SetDownloadBehaviorBehavior;
 import com.github.kklisura.cdt.protocol.types.browser.WindowState;
 import com.github.kklisura.cdt.protocol.types.input.DispatchKeyEventType;
 import com.github.kklisura.cdt.protocol.types.input.DispatchMouseEventType;
-import com.github.kklisura.cdt.protocol.types.input.EmulateTouchFromMouseEventType;
 import com.github.kklisura.cdt.protocol.types.input.MouseButton;
 import com.github.kklisura.cdt.protocol.types.page.CaptureScreenshotFormat;
 import com.github.kklisura.cdt.protocol.types.page.LayoutMetrics;
@@ -100,6 +99,8 @@ public class WebBot {
 	
 	private boolean headless = true;
 	
+	private String downloadFolderPath = System.getProperty("user.home") + "/Desktop";
+	
 	public WebBot() {		
 		try {
 			mapImages = new HashMap<String, MarvinImage>();
@@ -110,7 +111,69 @@ public class WebBot {
 		
 		//flip = MarvinPluginLoader.loadImagePlugin("org.marvinproject.image.transform.flip");
 		flip = new Flip();
+		flip.load();
 		flip.setAttribute("flip", "vertical");
+	}
+	
+	public void setDownloadFolder(String path) {
+		try {
+            Paths.get(path);
+            this.downloadFolderPath = path;
+            setDownloadFolder();   
+        } catch (InvalidPathException ex) {
+            ex.printStackTrace();
+        }
+	}
+	
+	private void setDownloadFolder() {
+        if(devToolsService != null) {
+        	devToolsService.getBrowser().setDownloadBehavior(SetDownloadBehaviorBehavior.ALLOW, null, downloadFolderPath);
+		}
+	}
+	
+	public void setDownloadFileNameAndWaitTillDownloadCompleted(String nameWithoutExt) {
+		File chosenFile = null;
+		File directory = new File(this.downloadFolderPath);
+		while(chosenFile == null && directory.exists()) {
+			
+		    File[] files = directory.listFiles(File::isFile);
+		    long lastModifiedTime = Long.MIN_VALUE;
+
+		    if (files != null)
+		    {
+		        for (File file : files)
+		        {
+		            if (file.lastModified() > lastModifiedTime)
+		            {
+		                chosenFile = file;
+		                lastModifiedTime = file.lastModified();
+		            }
+		        }
+		    }
+		}
+	    
+	    if(nameWithoutExt != null) {
+	    	try {
+					String ext = FilenameUtils.getExtension(chosenFile.getName());
+					boolean flag = chosenFile.renameTo(new File(nameWithoutExt+"."+ext));
+					
+	    		} catch(Exception e) {
+	    		   e.printStackTrace();
+	    		}
+	    }
+
+	}
+	
+	public void waitTillDownloadCompleted() {
+		setDownloadFileNameAndWaitTillDownloadCompleted(null);
+	}
+	
+	public void setScreenResolution(int widht, int height) {
+		Bounds b = new Bounds();
+		b.setWidth(widht);
+		b.setHeight(height);
+		devToolsService.getBrowser().setWindowBounds(devToolsService.getBrowser().getWindowForTarget().getWindowId(), b);
+		
 	}
 	
 	public boolean isHeadless() {
@@ -180,7 +243,6 @@ public class WebBot {
 		permissions.add(PermissionType.BACKGROUND_FETCH);
 		permissions.add(PermissionType.BACKGROUND_SYNC);
 		permissions.add(PermissionType.DURABLE_STORAGE);
-		permissions.add(PermissionType.FLASH);
 		permissions.add(PermissionType.GEOLOCATION);
 		permissions.add(PermissionType.IDLE_DETECTION);
 		permissions.add(PermissionType.MIDI);
@@ -235,7 +297,6 @@ public class WebBot {
 			permissions.add(PermissionType.BACKGROUND_FETCH);
 			permissions.add(PermissionType.BACKGROUND_SYNC);
 			permissions.add(PermissionType.DURABLE_STORAGE);
-			permissions.add(PermissionType.FLASH);
 			permissions.add(PermissionType.GEOLOCATION);
 			permissions.add(PermissionType.IDLE_DETECTION);
 			permissions.add(PermissionType.MIDI);
@@ -248,21 +309,45 @@ public class WebBot {
 	}
 	
 	public void browserMaximized() {
-		Bounds b = new Bounds();
-		b.setWindowState(WindowState.MAXIMIZED);
-		devToolsService.getBrowser().setWindowBounds(devToolsService.getBrowser().getWindowForTarget().getWindowId(), b);
+		try {
+			if(devToolsService != null) {
+				Bounds b = new Bounds();
+				b.setWindowState(WindowState.MAXIMIZED);
+				devToolsService.getBrowser().setWindowBounds(devToolsService.getBrowser().getWindowForTarget().getWindowId(), b);
+			}else {
+				throw new NullPointerException("Error: You must first call the method: navigateTo('linkToNavegate')");
+			}
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public void browserMinimized() {
-		Bounds b = new Bounds();
-		b.setWindowState(WindowState.MINIMIZED);
-		devToolsService.getBrowser().setWindowBounds(devToolsService.getBrowser().getWindowForTarget().getWindowId(), b);
+		try {
+			if(devToolsService != null) {
+				Bounds b = new Bounds();
+				b.setWindowState(WindowState.MINIMIZED);
+				devToolsService.getBrowser().setWindowBounds(devToolsService.getBrowser().getWindowForTarget().getWindowId(), b);
+			}else {
+				throw new NullPointerException("Error: You must first call the method: navigateTo('linkToNavegate')");
+			}
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public void browserFullScren() {
-		Bounds b = new Bounds();
-		b.setWindowState(WindowState.FULLSCREEN);
-		devToolsService.getBrowser().setWindowBounds(devToolsService.getBrowser().getWindowForTarget().getWindowId(), b);
+		try {
+			if(devToolsService != null) {
+				Bounds b = new Bounds();
+				b.setWindowState(WindowState.FULLSCREEN);
+				devToolsService.getBrowser().setWindowBounds(devToolsService.getBrowser().getWindowForTarget().getWindowId(), b);
+			}else {
+				throw new NullPointerException("Error: You must first call the method: navigateTo('linkToNavegate')");
+			}
+		}catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public Object executeJavascript(String code) {
@@ -331,6 +416,7 @@ public class WebBot {
 		run.enable();
 		devToolsService.getAccessibility().enable();
 		devToolsService.getApplicationCache().enable();
+		setDownloadFolder(System.getProperty("user.home") + "/Desktop");
 		
 		List<PermissionType> permissions = new ArrayList<PermissionType>();
 		permissions.add(PermissionType.CLIPBOARD_READ_WRITE);
@@ -341,7 +427,6 @@ public class WebBot {
 		permissions.add(PermissionType.BACKGROUND_FETCH);
 		permissions.add(PermissionType.BACKGROUND_SYNC);
 		permissions.add(PermissionType.DURABLE_STORAGE);
-		permissions.add(PermissionType.FLASH);
 		permissions.add(PermissionType.GEOLOCATION);
 		permissions.add(PermissionType.IDLE_DETECTION);
 		permissions.add(PermissionType.MIDI);
@@ -354,8 +439,13 @@ public class WebBot {
 	
 	public ChromeDevToolsService navigateTo(String uri){
 		startBrowser();
-		page.navigate(uri);		
+		page.navigate(uri);	
+		setScreenResolution(1600, 900);
 		return devToolsService;
+	}
+	
+	public boolean clickOn(String elementId){
+	    return clickOn(getImageFromMap(elementId));
 	}
 	
 	public boolean clickOn(MarvinImage visualElem) {
@@ -615,6 +705,10 @@ public class WebBot {
 		}
 	}
 	
+	public boolean findLastUntil(String elementId, int maxWaitingTime){
+	     return findLastUntil(elementId, getImageFromMap(elementId), maxWaitingTime);
+	}
+	
 	public boolean findLastUntil(String elementId, MarvinImage visualElem, int maxWaitingTime) {
 		return findLastUntil(elementId, visualElem, null, maxWaitingTime);
 	}
@@ -677,7 +771,7 @@ public class WebBot {
 	public void clickAt(int px, int py) {
 		this.x = px;
 		this.y = py;
-		moveAndclick();
+		moveAndclick(1);
 	}
 	
 	public void click() {
@@ -693,36 +787,30 @@ public class WebBot {
 	public void clickRelative(int x, int y) {
 		this.x += x;
 		this.y += y;
-		moveAndclick();
+		moveAndclick(1);
 		sleep(defaultSleepAfterAction);
 	}
 	
 	public void doubleClickRelative(int x, int y) {
 		this.x += x;
 		this.y += y;
-		moveAndclick();
-		sleep(300);
-		moveAndclick();
+		moveAndclick(2);
 		sleep(defaultSleepAfterAction);
 	}
 	
 	public void tripleClickRelative(int x, int y) {
 		this.x += x;
 		this.y += y;
-		moveAndclick();
-		sleep(100);
-		moveAndclick();
-		sleep(100);
-		moveAndclick();
+		moveAndclick(3);
 		sleep(defaultSleepAfterAction);
 	}
 	
 	public void scrollDown(int y) {
-		input.dispatchMouseEvent(DispatchMouseEventType.MOUSE_WHEEL, 0.0, (double)y);
+		input.dispatchMouseEvent(DispatchMouseEventType.MOUSE_WHEEL, 0.0, 0.0, null, null , null, null, null, null, null, null, null, null, 0.0, (double)y, null);
 	}
 	
 	public void scrollUp(int y) {
-		input.dispatchMouseEvent(DispatchMouseEventType.MOUSE_WHEEL, 0.0, (double)-y);
+		input.dispatchMouseEvent(DispatchMouseEventType.MOUSE_WHEEL, 0.0, 0.0, null, null , null, null, null, null, null, null, null, null, 0.0, (double)-y, null);
 	}
 	
 	public void move() {
@@ -780,8 +868,8 @@ public class WebBot {
 	}
 	
 	public void paste(String text, int waitAfter) {
-		executeJavascript("function copyStringToClipboard(str) { var el = document.createElement('textarea'); el.value = str; el.setAttribute('readonly', ''); el.style = { position: 'absolute', left: '-9999px' }; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); }copyStringToClipboard('"+text+"');");
-		
+		executeJavascript("var elementfocused = document.activeElement; function copyStringToClipboard(str) { var el = document.createElement('textarea'); el.value = str; el.setAttribute('readonly', ''); el.style = { position: 'absolute', left: '-9999px' }; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); }copyStringToClipboard('"+text+"'); elementfocused.focus();");
+		sleep(1000);
 		String[] commands = {"Paste"};
 		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, null, null, null, null, null, null, null, Arrays.asList(commands));
 		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
@@ -808,17 +896,14 @@ public class WebBot {
 		}
 	}
 	
-	private void moveAndclick() {
-		input.dispatchMouseEvent(DispatchMouseEventType.MOUSE_PRESSED, (double)this.x, (double)this.y);
-		input.dispatchMouseEvent(DispatchMouseEventType.MOUSE_RELEASED, (double)this.x, (double)this.y);
-//		input.emulateTouchFromMouseEvent(EmulateTouchFromMouseEventType.MOUSE_PRESSED, this.x, this.y, MouseButton.LEFT);
-//		input.emulateTouchFromMouseEvent(EmulateTouchFromMouseEventType.MOUSE_RELEASED, this.x, this.y, MouseButton.LEFT);
-//		enter();
+	private void moveAndclick(int count) {
+		input.dispatchMouseEvent(DispatchMouseEventType.MOUSE_PRESSED, (double)this.x, (double)this.y, null, null , MouseButton.LEFT, null, count, null, null, null, null, null, null, null, null);
+		input.dispatchMouseEvent(DispatchMouseEventType.MOUSE_RELEASED, (double)this.x, (double)this.y, null, null , MouseButton.LEFT, null, count, null, null, null, null, null, null, null, null);
 		sleep(defaultSleepAfterAction);
 	}
 	
 	private void click(int waitAfter) {
-		moveAndclick();
+		moveAndclick(1);
 		sleep(waitAfter);
 	}
 	
@@ -916,11 +1001,6 @@ public class WebBot {
 //		robot.keyRelease(KeyEvent.VK_SHIFT);
 //	}
 	
-	public void maximizeWindow() {
-		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-		devToolsService.getEmulation().setDeviceMetricsOverride(screenSize.width, screenSize.height, 1.0, false);
-	}
-	
 	public void typeKeys(Integer... keys) {
 		// Press
 		for(int i=0; i<keys.length; i++){
@@ -989,6 +1069,58 @@ public class WebBot {
 	public void controlA(int waitAfter) {
 		controlA();
 		sleep(waitAfter);
+	}
+	
+	public void scrollToEndOfDocument() {
+		String[] commands = {"ScrollToEndOfDocument"};
+		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, null, null, null, null, null, null, null, Arrays.asList(commands));
+		sleep(500);
+		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
+		sleep(defaultSleepAfterAction);
+	}
+	
+	public void scrollToEndOfDocument(int waitAfter) {
+		scrollToEndOfDocument();
+		sleep(waitAfter);
+	}
+	
+	public void scrollToBeginningOfDocument(int waitAfter) {
+		scrollToBeginningOfDocument();
+		sleep(waitAfter);
+	}
+	
+	public void scrollToBeginningOfDocument() {
+		String[] commands = {"ScrollToBeginningOfDocument"};
+		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, null, null, null, null, null, null, null, Arrays.asList(commands));
+		sleep(500);
+		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
+		sleep(defaultSleepAfterAction);
+	}
+	
+	public void scrollPageForward() {
+		String[] commands = {"ScrollPageForward"};
+		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, null, null, null, null, null, null, null, Arrays.asList(commands));
+		sleep(500);
+		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
+		sleep(defaultSleepAfterAction);
+	}
+	
+	public void scrollPageForward(int waitAfter) {
+		scrollPageForward();
+		sleep(waitAfter);
+	}
+	
+	public void scrollPageBackward(int waitAfter) {
+		scrollPageBackward();
+		sleep(waitAfter);
+	}
+	
+	public void scrollPageBackward() {
+		String[] commands = {"ScrollPageBackward"};
+		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, null, null, null, null, null, null, null, Arrays.asList(commands));
+		sleep(500);
+		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
+		sleep(defaultSleepAfterAction);
 	}
 	
 //	public void controlF() {
@@ -1189,7 +1321,13 @@ public class WebBot {
 		viewport.setWidth(width);
 		viewport.setHeight(height);
 		
-		String data = page.captureScreenshot(CaptureScreenshotFormat.PNG, 100, viewport, Boolean.TRUE);
+		String data = "";
+//		try {
+			data = page.captureScreenshot(CaptureScreenshotFormat.PNG, 100, viewport, Boolean.TRUE);
+//		} catch (Exception e) {
+//			return getScreenImage();
+//		}
+		
 		BufferedImage image = null;
 		byte[] imageByte;
 
