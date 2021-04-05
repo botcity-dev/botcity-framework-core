@@ -2,6 +2,7 @@ package dev.botcity.framework.bot;
 import static org.marvinproject.plugins.collection.MarvinPluginCollection.crop;
 import static org.marvinproject.plugins.collection.MarvinPluginCollection.thresholding;
 
+import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Point;
@@ -43,12 +44,15 @@ import com.github.kklisura.cdt.protocol.types.browser.Bounds;
 import com.github.kklisura.cdt.protocol.types.browser.PermissionType;
 import com.github.kklisura.cdt.protocol.types.browser.SetDownloadBehaviorBehavior;
 import com.github.kklisura.cdt.protocol.types.browser.WindowState;
+import com.github.kklisura.cdt.protocol.types.dom.Rect;
 import com.github.kklisura.cdt.protocol.types.input.DispatchKeyEventType;
 import com.github.kklisura.cdt.protocol.types.input.DispatchMouseEventType;
 import com.github.kklisura.cdt.protocol.types.input.MouseButton;
 import com.github.kklisura.cdt.protocol.types.page.CaptureScreenshotFormat;
 import com.github.kklisura.cdt.protocol.types.page.LayoutMetrics;
+import com.github.kklisura.cdt.protocol.types.page.LayoutViewport;
 import com.github.kklisura.cdt.protocol.types.page.Viewport;
+import com.github.kklisura.cdt.protocol.types.page.VisualViewport;
 import com.github.kklisura.cdt.protocol.types.runtime.Evaluate;
 import com.github.kklisura.cdt.services.ChromeDevToolsService;
 import com.github.kklisura.cdt.services.ChromeService;
@@ -100,6 +104,8 @@ public class WebBot {
 	private boolean headless = true;
 	
 	private String downloadFolderPath = System.getProperty("user.home") + "/Desktop";
+	
+	private Dimension scrennSize = new Dimension(1600, 900);
 	
 	public WebBot() {		
 		try {
@@ -168,12 +174,17 @@ public class WebBot {
 		setDownloadFileNameAndWaitTillDownloadCompleted(null);
 	}
 	
-	public void setScreenResolution(int widht, int height) {
+	public void setScreenResolution(int width, int height) {
+		this.scrennSize = new Dimension(width, height);
+	}
+	
+	private void setScreenResolution() {
 		Bounds b = new Bounds();
-		b.setWidth(widht);
-		b.setHeight(height);
+		b.setWidth(this.scrennSize.width);
+		b.setHeight(this.scrennSize.height);
 		devToolsService.getBrowser().setWindowBounds(devToolsService.getBrowser().getWindowForTarget().getWindowId(), b);
-		
+		devToolsService.getEmulation().setVisibleSize(this.scrennSize.width, this.scrennSize.height);
+		//.getEmulation().setPageScaleFactor((double) 1);
 	}
 	
 	public boolean isHeadless() {
@@ -417,6 +428,7 @@ public class WebBot {
 		devToolsService.getAccessibility().enable();
 		devToolsService.getApplicationCache().enable();
 		setDownloadFolder(this.downloadFolderPath);
+		setScreenResolution();
 		
 		List<PermissionType> permissions = new ArrayList<PermissionType>();
 		permissions.add(PermissionType.CLIPBOARD_READ_WRITE);
