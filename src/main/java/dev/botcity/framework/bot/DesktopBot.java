@@ -175,6 +175,17 @@ public class DesktopBot {
 		}
 	}
 	
+	
+	public void rightClick() {
+		robot.mousePress(InputEvent.BUTTON3_MASK);
+		robot.mouseRelease(InputEvent.BUTTON3_MASK);
+	}
+	
+	public void rightClick(int x, int y) {
+		mouseMove(x,y);
+		rightClick();
+	}
+	
 	public boolean clickOn(String elementId){
 	    return clickOn(getImageFromMap(elementId));
 	}
