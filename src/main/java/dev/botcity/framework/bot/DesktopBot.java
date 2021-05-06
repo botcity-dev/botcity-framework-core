@@ -176,16 +176,6 @@ public class DesktopBot {
 	}
 	
 	
-	public void rightClick() {
-		robot.mousePress(InputEvent.BUTTON3_MASK);
-		robot.mouseRelease(InputEvent.BUTTON3_MASK);
-	}
-	
-	public void rightClick(int x, int y) {
-		mouseMove(x,y);
-		rightClick();
-	}
-	
 	public boolean clickOn(String elementId){
 	    return clickOn(getImageFromMap(elementId));
 	}
@@ -567,6 +557,12 @@ public class DesktopBot {
 		
 	}
 	
+	public void rightClickAt(int x, int y) {
+		this.x = x;
+		this.y = y;
+		moveAndRightClick();
+	}
+	
 	/**
 	 * Click in last found UI element.
 	 */
@@ -574,6 +570,16 @@ public class DesktopBot {
 		clickRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
 		sleep(defaultSleepAfterAction);
 	}
+	
+	/**
+	 * Right Click in last found UI element.
+	 */
+	public void rightClick() {
+		rightClickRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
+		sleep(defaultSleepAfterAction);
+	}
+	
+	
 	
 	/**
 	 * Double-click in last found UI element.
@@ -592,6 +598,13 @@ public class DesktopBot {
 		this.x += x;
 		this.y += y;
 		moveAndclick();
+		sleep(defaultSleepAfterAction);
+	}
+	
+	public void rightClickRelative(int x, int y) {
+		this.x += x;
+		this.y += y;
+		moveAndRightClick();
 		sleep(defaultSleepAfterAction);
 	}
 	
@@ -797,9 +810,14 @@ public class DesktopBot {
 	
 	private void moveAndclick() {
 		mouseMove(this.x, this.y);
-		
 		robot.mousePress(InputEvent.BUTTON1_MASK);
 		robot.mouseRelease(InputEvent.BUTTON1_MASK);
+	}
+	
+	private void moveAndRightClick() {
+		mouseMove(this.x, this.y);
+		robot.mousePress(InputEvent.BUTTON3_MASK);
+		robot.mouseRelease(InputEvent.BUTTON3_MASK);
 	}
 	
 	private void click(int waitAfter) {
