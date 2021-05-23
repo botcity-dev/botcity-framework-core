@@ -27,3 +27,7 @@ hs_err_pid*
 
 # Binaries
 target/
+
+.idea
+
+*.iml
