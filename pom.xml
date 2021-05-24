@@ -8,8 +8,20 @@
 	<version>1.1.0</version>
 	<packaging>jar</packaging>
 
-	<name>framework</name>
-	<url>http://maven.apache.org</url>
+	<name>botcity-framework-core</name>
+	<url>https://www.botcity.dev/</url>
+	<description>
+		Core module of the BotCity RPA framework. Basically, this module
+		provides features to recognize UI elemements and interact with it
+		using mouse and keyboard actions.
+	</description>
+
+	<licenses>
+		<license>
+			<name>The Apache License, Version 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+		</license>
+	</licenses>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -75,6 +87,5 @@
 			<artifactId>commons-validator</artifactId>
 			<version>1.3.1</version>
 		</dependency>
-
 	</dependencies>
 </project>
