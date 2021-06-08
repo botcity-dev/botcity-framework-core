@@ -75,6 +75,8 @@ public class WebBot {
 	
 	private int 						defaultSleepAfterAction=300;
 	
+	private double						colorSensibility = 0.04;
+	
 	protected String lastClipboardText = "";
 	
 	private ClassLoader					resourceClassLoader;
@@ -115,10 +117,17 @@ public class WebBot {
 		}
 		screen = new MarvinImage(1,1);
 		
-		//flip = MarvinPluginLoader.loadImagePlugin("org.marvinproject.image.transform.flip");
 		flip = new Flip();
 		flip.load();
 		flip.setAttribute("flip", "vertical");
+	}
+	
+	public void setColorSensibility(double colorSensibility) {
+		this.colorSensibility = colorSensibility;
+	}
+	
+	public double getColorSensibility() {
+		return this.colorSensibility;
 	}
 	
 	public void setDownloadFolder(String path) {
@@ -1506,6 +1515,9 @@ public class WebBot {
 //		System.out.println("altura: "+ searchWindowHeight);
 //		System.out.println("largura: "+ searchWindowWidth);
 		// Full image
+		
+		int colorThreshold = (int)(255 * colorSensibility);
+		
 		mainLoop:for(int y=startY; y<startY+searchWindowHeight; y++){
 			for(int x=startX; x<startX+searchWindowWidth; x++){
 				
@@ -1537,9 +1549,9 @@ public class WebBot {
 							
 							if
 							(
-								Math.abs(r1-r2) > 5 ||
-								Math.abs(g1-g2) > 5 ||
-								Math.abs(b1-b2) > 5
+								Math.abs(r1-r2) > colorThreshold ||
+								Math.abs(g1-g2) > colorThreshold ||
+								Math.abs(b1-b2) > colorThreshold
 							){
 								notMatched++;
 								

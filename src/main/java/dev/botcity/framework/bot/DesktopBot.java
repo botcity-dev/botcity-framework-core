@@ -56,6 +56,8 @@ public class DesktopBot {
 	
 	private int 						sleepAfterAction=300;
 	
+	private double						colorSensibility = 0.04;
+	
 	private ClassLoader					resourceClassLoader;
 	
 	private Map<String, MarvinImage>	mapImages;
@@ -76,6 +78,14 @@ public class DesktopBot {
 	
 	public void enableDebug(){
 		this.debug = true;
+	}
+	
+	public void setColorSensibility(double colorSensibility) {
+		this.colorSensibility = colorSensibility;
+	}
+	
+	public double getColorSensibility() {
+		return this.colorSensibility;
 	}
 	
 	/**
@@ -1593,6 +1603,8 @@ public class DesktopBot {
 				
 				int notMatched=0;
 				boolean match=true;
+				int colorThreshold = (int)(255 * colorSensibility);
+				
 				// subimage
 				if(y+subimage.getHeight() < imageIn.getHeight() && x+subimage.getWidth() < imageIn.getWidth()){
 				
@@ -1615,9 +1627,9 @@ public class DesktopBot {
 							
 							if
 							(
-								Math.abs(r1-r2) > 5 ||
-								Math.abs(g1-g2) > 5 ||
-								Math.abs(b1-b2) > 5
+								Math.abs(r1-r2) > colorThreshold ||
+								Math.abs(g1-g2) > colorThreshold ||
+								Math.abs(b1-b2) > colorThreshold
 							){
 								notMatched++;
 								
@@ -1650,5 +1662,4 @@ public class DesktopBot {
 		
 		return bestSegment;
 	}
-	
 }
