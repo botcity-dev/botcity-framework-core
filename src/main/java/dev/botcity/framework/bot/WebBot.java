@@ -1323,7 +1323,19 @@ public class WebBot {
 		sleep(waitAfter);
 		sleep(defaultSleepAfterAction);
 	}
+
+	public void delete() {
+		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "Delete", KeyEvent.VK_DELETE, KeyEvent.VK_DELETE, null, null, null, null, null);
+		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
+		sleep(defaultSleepAfterAction);
+	}
 	
+	public void delete(int waitAfter) {
+		delete();
+		sleep(waitAfter);
+		sleep(defaultSleepAfterAction);
+	}
+
 	public MarvinImage getScreenShot() {
 		screenshot();
 		return screen;

@@ -1325,6 +1325,18 @@ public class DesktopBot {
 		sleep(waitAfter);
 		sleep(defaultSleepAfterAction);
 	}
+
+	public void delete() {
+		robot.keyPress(KeyEvent.VK_DELETE);
+		robot.keyRelease(KeyEvent.VK_DELETE);
+		sleep(defaultSleepAfterAction);
+	}
+	
+	public void delete(int waitAfter) {
+		delete();
+		sleep(waitAfter);
+		sleep(defaultSleepAfterAction);
+	}
 	
 	/**
 	 * Returns the current screen in MarvinImage format.
