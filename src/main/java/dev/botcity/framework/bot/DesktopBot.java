@@ -54,7 +54,7 @@ public class DesktopBot {
 	
 	private boolean 					debug=false;
 	
-	private int 						defaultSleepAfterAction=300;
+	private int 						sleepAfterAction=300;
 	
 	private ClassLoader					resourceClassLoader;
 	
@@ -69,7 +69,6 @@ public class DesktopBot {
 		}
 		screen = new MarvinImage(1,1);
 		
-		//flip = MarvinPluginLoader.loadImagePlugin("org.marvinproject.image.transform.flip");
 		flip = new Flip();
 		flip.load();
 		flip.setAttribute("flip", "vertical");
@@ -568,7 +567,7 @@ public class DesktopBot {
 	 */
 	public void click() {
 		clickRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
-		sleep(defaultSleepAfterAction);
+		sleep(sleepAfterAction);
 	}
 	
 	/**
@@ -576,7 +575,7 @@ public class DesktopBot {
 	 */
 	public void rightClick() {
 		rightClickRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
-		sleep(defaultSleepAfterAction);
+		sleep(sleepAfterAction);
 	}
 	
 	
@@ -586,7 +585,7 @@ public class DesktopBot {
 	 */
 	public void doubleclick() {
 		doubleClickRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
-		sleep(defaultSleepAfterAction);
+		sleep(sleepAfterAction);
 	}
 	
 	/**
@@ -598,14 +597,14 @@ public class DesktopBot {
 		this.x += x;
 		this.y += y;
 		moveAndclick();
-		sleep(defaultSleepAfterAction);
+		sleep(sleepAfterAction);
 	}
 	
 	public void rightClickRelative(int x, int y) {
 		this.x += x;
 		this.y += y;
 		moveAndRightClick();
-		sleep(defaultSleepAfterAction);
+		sleep(sleepAfterAction);
 	}
 	
 	/**
@@ -614,7 +613,7 @@ public class DesktopBot {
 	 * @param y 		vertical offset to the UI element.
 	 */
 	public void doubleClickRelative(int x, int y) {
-		doubleClickRelative(x, y, 300);
+		doubleClickRelative(x, y, 100);
 	}
 	
 	/**
@@ -629,7 +628,7 @@ public class DesktopBot {
 		moveAndclick();
 		sleep(sleepBetweenClicks);
 		moveAndclick();
-		sleep(defaultSleepAfterAction);
+		sleep(sleepAfterAction);
 	}
 	
 	/**
@@ -652,7 +651,7 @@ public class DesktopBot {
 		moveAndclick();
 		sleep(100);
 		moveAndclick();
-		sleep(defaultSleepAfterAction);
+		sleep(sleepAfterAction);
 	}
 	
 	/**
@@ -713,7 +712,7 @@ public class DesktopBot {
 		for(int i=0; i<text.length(); i++) {
 			typeKey(text.charAt(i));
 		}
-		sleep(defaultSleepAfterAction);
+		sleep(sleepAfterAction);
 	}
 	
 	/**
@@ -726,7 +725,7 @@ public class DesktopBot {
 			typeKey(text.charAt(i));
 			sleep(waitAfterChars);
 		}
-		sleep(defaultSleepAfterAction);
+		sleep(sleepAfterAction);
 	}
 	
 	/**
@@ -825,13 +824,25 @@ public class DesktopBot {
 		sleep(waitAfter);
 	}
 	
+	private void singleKeyAction(int keyCode, int waitAfter) {
+		robot.keyPress(keyCode);
+		robot.keyRelease(keyCode);
+		sleep(waitAfter);
+	}
+	
+	private void doubleKeyActions(int keyCodeFirst, int keyCodeSecond, int waitAfter) {
+		robot.keyPress(keyCodeFirst);
+		robot.keyPress(keyCodeSecond);
+		robot.keyRelease(keyCodeSecond);
+		robot.keyRelease(keyCodeFirst);
+		sleep(waitAfter);
+	}
+	
 	/**
 	 * Press key tab
 	 */
 	public void tab() {
-		robot.keyPress(KeyEvent.VK_TAB);
-		robot.keyRelease(KeyEvent.VK_TAB);
-		sleep(defaultSleepAfterAction);
+		tab(sleepAfterAction);
 	}
 	
 	/**
@@ -839,17 +850,59 @@ public class DesktopBot {
 	 * @param waitAfter			sleep interval after action.
 	 */
 	public void tab(int waitAfter) {
-		tab();
-		sleep(waitAfter);
+		singleKeyAction(KeyEvent.VK_TAB, waitAfter);
+	}
+	
+	/**
+	 * Press key "up"
+	 * @param waitAfter			sleep interval after action.
+	 */
+	public void keyUp(int waitAfter) {
+		singleKeyAction(KeyEvent.VK_UP, waitAfter);
+	}
+	
+	/**
+	 * Press key "up"
+	 */
+	public void keyUp() {
+		keyUp(sleepAfterAction);
+	}
+	
+	/**
+	 * Press key "down"
+	 * @param waitAfter			sleep interval after action.
+	 */
+	public void keyDown(int waitAfter) {
+		singleKeyAction(KeyEvent.VK_DOWN, waitAfter);
+	}
+	
+	/**
+	 * Press key "down"
+	 */
+	public void keyDown() {
+		keyDown(sleepAfterAction);
+	}
+	
+	/**
+	 * Press key "left"
+	 */
+	public void keyLeft() {
+		keyLeft(sleepAfterAction);
+	}
+	
+	/**
+	 * Press key "left"
+	 * @param waitAfter			sleep interval after action.
+	 */
+	public void keyLeft(int waitAfter) {
+		singleKeyAction(KeyEvent.VK_LEFT, waitAfter);
 	}
 	
 	/**
 	 * Press key "right"
 	 */
 	public void keyRight() {
-		robot.keyPress(KeyEvent.VK_RIGHT);
-		robot.keyRelease(KeyEvent.VK_RIGHT);
-		sleep(defaultSleepAfterAction);
+		keyRight(sleepAfterAction);
 	}
 	
 	/**
@@ -857,17 +910,22 @@ public class DesktopBot {
 	 * @param waitAfter			sleep interval after action.
 	 */
 	public void keyRight(int waitAfter) {
-		keyRight();
-		sleep(waitAfter);
+		singleKeyAction(KeyEvent.VK_RIGHT, waitAfter);
 	}
 	
 	/**
 	 * Press key "enter"
 	 */
 	public void enter() {
-		robot.keyPress(KeyEvent.VK_ENTER);
-		robot.keyRelease(KeyEvent.VK_ENTER);
-		sleep(defaultSleepAfterAction);
+		enter(sleepAfterAction);
+	}
+	
+	/**
+	 * Press key "enter"
+	 * @param waitAfter			sleep interval after action.
+	 */
+	public void enter(int waitAfter) {
+		singleKeyAction(KeyEvent.VK_ENTER, waitAfter);
 	}
 	
 	/**
@@ -875,44 +933,37 @@ public class DesktopBot {
 	 * @param waitAfter			sleep interval after action.
 	 */
 	public void keyEnter(int waitAfter) {
-		enter();
-		sleep(waitAfter);
+		singleKeyAction(KeyEvent.VK_ENTER, waitAfter);
 	}
 	
 	public void keyEnd() {
-		robot.keyPress(KeyEvent.VK_END);
-		robot.keyRelease(KeyEvent.VK_END);
-		sleep(defaultSleepAfterAction);
+		keyEnd(sleepAfterAction);
 	}
 	
 	public void keyEnd(int waitAfter) {
-		keyEnd();
-		sleep(waitAfter);
+		singleKeyAction(KeyEvent.VK_END, waitAfter);
 	}
 	
 	public void keyEsc() {
-		robot.keyPress(KeyEvent.VK_ESCAPE);
-		robot.keyRelease(KeyEvent.VK_ESCAPE);
-		sleep(defaultSleepAfterAction);
+		keyEsc(sleepAfterAction);
 	}
 	
 	public void keyEsc(int waitAfter) {
-		keyEsc();
-		sleep(waitAfter);
+		singleKeyAction(KeyEvent.VK_ESCAPE, waitAfter);
 	}
 	
-	public void keyF1() {					robot.keyPress(KeyEvent.VK_F1);		robot.keyRelease(KeyEvent.VK_F1);	sleep(defaultSleepAfterAction);}
-	public void keyF2() {					robot.keyPress(KeyEvent.VK_F2);		robot.keyRelease(KeyEvent.VK_F2);	sleep(defaultSleepAfterAction);}
-	public void keyF3() {					robot.keyPress(KeyEvent.VK_F3);		robot.keyRelease(KeyEvent.VK_F3);	sleep(defaultSleepAfterAction);}
-	public void keyF4() {					robot.keyPress(KeyEvent.VK_F4);		robot.keyRelease(KeyEvent.VK_F4);	sleep(defaultSleepAfterAction);}
-	public void keyF5() {					robot.keyPress(KeyEvent.VK_F5);		robot.keyRelease(KeyEvent.VK_F5);	sleep(defaultSleepAfterAction);}
-	public void keyF6() {					robot.keyPress(KeyEvent.VK_F6);		robot.keyRelease(KeyEvent.VK_F6);	sleep(defaultSleepAfterAction);}
-	public void keyF7() {					robot.keyPress(KeyEvent.VK_F7);		robot.keyRelease(KeyEvent.VK_F7);	sleep(defaultSleepAfterAction);}
-	public void keyF8() {					robot.keyPress(KeyEvent.VK_F8);		robot.keyRelease(KeyEvent.VK_F8);	sleep(defaultSleepAfterAction);}
-	public void keyF9() {					robot.keyPress(KeyEvent.VK_F9);		robot.keyRelease(KeyEvent.VK_F9);	sleep(defaultSleepAfterAction);}
-	public void keyF10() {					robot.keyPress(KeyEvent.VK_F10);	robot.keyRelease(KeyEvent.VK_F10);	sleep(defaultSleepAfterAction);}
-	public void keyF11() {					robot.keyPress(KeyEvent.VK_F11);	robot.keyRelease(KeyEvent.VK_F11);	sleep(defaultSleepAfterAction);}
-	public void keyF12() {					robot.keyPress(KeyEvent.VK_F12);	robot.keyRelease(KeyEvent.VK_F12);	sleep(defaultSleepAfterAction);}
+	public void keyF1() {					robot.keyPress(KeyEvent.VK_F1);		robot.keyRelease(KeyEvent.VK_F1);	sleep(sleepAfterAction);}
+	public void keyF2() {					robot.keyPress(KeyEvent.VK_F2);		robot.keyRelease(KeyEvent.VK_F2);	sleep(sleepAfterAction);}
+	public void keyF3() {					robot.keyPress(KeyEvent.VK_F3);		robot.keyRelease(KeyEvent.VK_F3);	sleep(sleepAfterAction);}
+	public void keyF4() {					robot.keyPress(KeyEvent.VK_F4);		robot.keyRelease(KeyEvent.VK_F4);	sleep(sleepAfterAction);}
+	public void keyF5() {					robot.keyPress(KeyEvent.VK_F5);		robot.keyRelease(KeyEvent.VK_F5);	sleep(sleepAfterAction);}
+	public void keyF6() {					robot.keyPress(KeyEvent.VK_F6);		robot.keyRelease(KeyEvent.VK_F6);	sleep(sleepAfterAction);}
+	public void keyF7() {					robot.keyPress(KeyEvent.VK_F7);		robot.keyRelease(KeyEvent.VK_F7);	sleep(sleepAfterAction);}
+	public void keyF8() {					robot.keyPress(KeyEvent.VK_F8);		robot.keyRelease(KeyEvent.VK_F8);	sleep(sleepAfterAction);}
+	public void keyF9() {					robot.keyPress(KeyEvent.VK_F9);		robot.keyRelease(KeyEvent.VK_F9);	sleep(sleepAfterAction);}
+	public void keyF10() {					robot.keyPress(KeyEvent.VK_F10);	robot.keyRelease(KeyEvent.VK_F10);	sleep(sleepAfterAction);}
+	public void keyF11() {					robot.keyPress(KeyEvent.VK_F11);	robot.keyRelease(KeyEvent.VK_F11);	sleep(sleepAfterAction);}
+	public void keyF12() {					robot.keyPress(KeyEvent.VK_F12);	robot.keyRelease(KeyEvent.VK_F12);	sleep(sleepAfterAction);}
 	
 	public void keyF1(int waitAfter) 	{	keyF1();	sleep(waitAfter);	}
 	public void keyF2(int waitAfter) 	{	keyF2();	sleep(waitAfter);	}
@@ -982,221 +1033,149 @@ public class DesktopBot {
 		}
 	}
 	
+	public void altPlusLetter(char c) {
+		altPlusLetter(c, sleepAfterAction);
+	}
+	
+	public void altPlusLetter(char c, int waitAfter) {
+		doubleKeyActions(KeyEvent.VK_ALT, Character.toUpperCase(c), waitAfter);
+		sleep(waitAfter);
+	}
+	
 	public void altE() {
-		robot.keyPress(KeyEvent.VK_ALT);
-		robot.keyPress(KeyEvent.VK_E);
-		robot.keyRelease(KeyEvent.VK_E);
-		robot.keyRelease(KeyEvent.VK_ALT);
-		sleep(defaultSleepAfterAction);
+		altE(sleepAfterAction);
 	}
 	
 	public void altE(int waitAfter) {
-		altE();
-		sleep(waitAfter);
+		doubleKeyActions(KeyEvent.VK_ALT, KeyEvent.VK_E, waitAfter);
 	}
 	
 	public void altR() {
-		robot.keyPress(KeyEvent.VK_ALT);
-		robot.keyPress(KeyEvent.VK_R);
-		robot.keyRelease(KeyEvent.VK_R);
-		robot.keyRelease(KeyEvent.VK_ALT);
-		sleep(defaultSleepAfterAction);
+		altR(sleepAfterAction);
 	}
 	
 	public void altR(int waitAfter) {
-		altR();
-		sleep(waitAfter);
+		doubleKeyActions(KeyEvent.VK_ALT, KeyEvent.VK_R, waitAfter);
 	}
 	
 	public void altF() {
-		robot.keyPress(KeyEvent.VK_ALT);
-		robot.keyPress(KeyEvent.VK_F);
-		robot.keyRelease(KeyEvent.VK_F);
-		robot.keyRelease(KeyEvent.VK_ALT);
-		sleep(defaultSleepAfterAction);
+		altF(sleepAfterAction);
 	}
 	
 	public void altF(int waitAfter) {
-		altF();
-		sleep(waitAfter);
+		doubleKeyActions(KeyEvent.VK_ALT, KeyEvent.VK_F, waitAfter);
 	}
 	
 	public void altU() {
-		robot.keyPress(KeyEvent.VK_ALT);
-		robot.keyPress(KeyEvent.VK_U);
-		robot.keyRelease(KeyEvent.VK_U);
-		robot.keyRelease(KeyEvent.VK_ALT);
-		sleep(defaultSleepAfterAction);
+		altU(sleepAfterAction);
 	}
 	
 	public void altU(int waitAfter) {
-		altU();
-		sleep(waitAfter);
+		doubleKeyActions(KeyEvent.VK_ALT, KeyEvent.VK_U, waitAfter);
 	}
 	
 	public void altSpace() {
-		robot.keyPress(KeyEvent.VK_ALT);
-		robot.keyPress(KeyEvent.VK_SPACE);
-		robot.keyRelease(KeyEvent.VK_SPACE);
-		robot.keyRelease(KeyEvent.VK_ALT);
-		sleep(defaultSleepAfterAction);
+		altSpace(sleepAfterAction);
 	}
 	
 	public void altSpace(int waitAfter) {
-		altSpace();
-		sleep(waitAfter);
+		doubleKeyActions(KeyEvent.VK_ALT, KeyEvent.VK_SPACE, waitAfter);
 	}
 	
 	public void altF4() {
-		robot.keyPress(KeyEvent.VK_ALT);
-		sleep(50);
-		robot.keyPress(KeyEvent.VK_F4);
-		sleep(50);
-		robot.keyRelease(KeyEvent.VK_F4);
-		sleep(50);
-		robot.keyRelease(KeyEvent.VK_ALT);	
+		altF4(sleepAfterAction);
 	}
 	
 	public void altF4(int waitAfter) {
-		altF4();
-		sleep(waitAfter);
+		doubleKeyActions(KeyEvent.VK_ALT, KeyEvent.VK_F4, waitAfter);
 	}
 	
 	public void controlC() {
-		robot.keyPress(KeyEvent.VK_CONTROL);
-		robot.keyPress(KeyEvent.VK_C);
-		robot.keyRelease(KeyEvent.VK_C);
-		robot.keyRelease(KeyEvent.VK_CONTROL);
-		sleep(defaultSleepAfterAction);
+		controlC(sleepAfterAction);
 	}
 	
 	public void controlC(int waitAfter) {
-		controlC();
-		sleep(waitAfter);
+		doubleKeyActions(KeyEvent.VK_CONTROL, KeyEvent.VK_C, waitAfter);
 	}
 	
 	public void controlV() {
-		robot.keyPress(KeyEvent.VK_CONTROL);
-		robot.keyPress(KeyEvent.VK_V);
-		robot.keyRelease(KeyEvent.VK_V);
-		robot.keyRelease(KeyEvent.VK_CONTROL);
-		sleep(defaultSleepAfterAction);
+		controlV(sleepAfterAction);
+	}
+	
+	public void controlV(int waitAfter) {
+		doubleKeyActions(KeyEvent.VK_CONTROL, KeyEvent.VK_V, waitAfter);
 	}
 	
 	public void controlA() {
-		robot.keyPress(KeyEvent.VK_CONTROL);
-		robot.keyPress(KeyEvent.VK_A);
-		robot.keyRelease(KeyEvent.VK_A);
-		robot.keyRelease(KeyEvent.VK_CONTROL);
-		sleep(defaultSleepAfterAction);
+		controlA(sleepAfterAction);
 	}
 	
 	public void controlA(int waitAfter) {
-		controlA();
-		sleep(waitAfter);
+		doubleKeyActions(KeyEvent.VK_CONTROL, KeyEvent.VK_A, waitAfter);
 	}
 	
 	public void controlF() {
-		robot.keyPress(KeyEvent.VK_CONTROL);
-		robot.keyPress(KeyEvent.VK_F);
-		robot.keyRelease(KeyEvent.VK_F);
-		robot.keyRelease(KeyEvent.VK_CONTROL);
-		sleep(defaultSleepAfterAction);
+		controlF(sleepAfterAction);
 	}
 	
 	public void controlF(int waitAfter) {
-		controlF();
-		sleep(waitAfter);
+		doubleKeyActions(KeyEvent.VK_CONTROL, KeyEvent.VK_F, waitAfter);
 	}
 	
 	public void controlP() {
-		robot.keyPress(KeyEvent.VK_CONTROL);
-		robot.keyPress(KeyEvent.VK_P);
-		robot.keyRelease(KeyEvent.VK_P);
-		robot.keyRelease(KeyEvent.VK_CONTROL);
-		sleep(defaultSleepAfterAction);
+		controlP(sleepAfterAction);
 	}
 	
 	public void controlP(int waitAfter) {
-		controlP();
-		sleep(waitAfter);
+		doubleKeyActions(KeyEvent.VK_CONTROL, KeyEvent.VK_P, waitAfter);
 	}
 	
 	public void controlU() {
-		robot.keyPress(KeyEvent.VK_CONTROL);
-		robot.keyPress(KeyEvent.VK_U);
-		robot.keyRelease(KeyEvent.VK_U);
-		robot.keyRelease(KeyEvent.VK_CONTROL);
-		sleep(defaultSleepAfterAction);
+		controlU(sleepAfterAction);
 	}
 	
 	public void controlU(int waitAfter) {
-		controlU();
-		sleep(waitAfter);
+		doubleKeyActions(KeyEvent.VK_CONTROL, KeyEvent.VK_U, waitAfter);
 	}
 	
 	public void controlR() {
-		robot.keyPress(KeyEvent.VK_CONTROL);
-		robot.keyPress(KeyEvent.VK_R);
-		robot.keyRelease(KeyEvent.VK_R);
-		robot.keyRelease(KeyEvent.VK_CONTROL);
-		sleep(defaultSleepAfterAction);
+		controlR(sleepAfterAction);
 	}
 	
 	public void controlR(int waitAfter) {
-		controlR();
-		sleep(waitAfter);
+		doubleKeyActions(KeyEvent.VK_CONTROL, KeyEvent.VK_R, waitAfter);
 	}
 	
 	public void controlT() {
-		robot.keyPress(KeyEvent.VK_CONTROL);
-		robot.keyPress(KeyEvent.VK_T);
-		robot.keyRelease(KeyEvent.VK_T);
-		robot.keyRelease(KeyEvent.VK_CONTROL);
-		sleep(defaultSleepAfterAction);
+		controlT(sleepAfterAction);
 	}
 	
 	public void controlT(int waitAfter) {
-		controlT();
-		sleep(waitAfter);
+		doubleKeyActions(KeyEvent.VK_CONTROL, KeyEvent.VK_T, waitAfter);
 	}
 	
 	public void controlEnd() {
-		robot.keyPress(KeyEvent.VK_CONTROL);
-		robot.keyPress(KeyEvent.VK_END);
-		robot.keyRelease(KeyEvent.VK_END);
-		robot.keyRelease(KeyEvent.VK_CONTROL);
-		sleep(defaultSleepAfterAction);
+		controlEnd(sleepAfterAction);
 	}
 	
 	public void controlEnd(int waitAfter) {
-		controlEnd();
-		sleep(waitAfter);
+		doubleKeyActions(KeyEvent.VK_CONTROL, KeyEvent.VK_END, waitAfter);
 	}
 	
 	public void controlHome(int waitAfter) {
-		controlHome();
-		sleep(waitAfter);
+		doubleKeyActions(KeyEvent.VK_CONTROL, KeyEvent.VK_HOME, waitAfter);
 	}
 	
 	public void controlHome() {
-		robot.keyPress(KeyEvent.VK_CONTROL);
-		robot.keyPress(KeyEvent.VK_HOME);
-		robot.keyRelease(KeyEvent.VK_HOME);
-		robot.keyRelease(KeyEvent.VK_CONTROL);
-		sleep(defaultSleepAfterAction);
+		controlHome(sleepAfterAction);
 	}
 	
 	public void controlW() {
-		robot.keyPress(KeyEvent.VK_CONTROL);
-		robot.keyPress(KeyEvent.VK_W);
-		robot.keyRelease(KeyEvent.VK_W);
-		robot.keyRelease(KeyEvent.VK_CONTROL);
+		controlW(sleepAfterAction);
 	}
 	
 	public void controlW(int waitAfter) {
-		controlW();
-		sleep(waitAfter);
+		doubleKeyActions(KeyEvent.VK_CONTROL, KeyEvent.VK_W, waitAfter);
 	}
 	
 	public void controlShiftP() {
@@ -1206,7 +1185,7 @@ public class DesktopBot {
 		robot.keyRelease(KeyEvent.VK_P);
 		robot.keyRelease(KeyEvent.VK_SHIFT);
 		robot.keyRelease(KeyEvent.VK_CONTROL);
-		sleep(defaultSleepAfterAction);
+		sleep(sleepAfterAction);
 	}
 	
 	public void controlShiftP(int waitAfter) {
@@ -1221,7 +1200,7 @@ public class DesktopBot {
 		robot.keyRelease(KeyEvent.VK_J);
 		robot.keyRelease(KeyEvent.VK_SHIFT);
 		robot.keyRelease(KeyEvent.VK_CONTROL);
-		sleep(defaultSleepAfterAction);
+		sleep(sleepAfterAction);
 	}
 	
 	public void controlShiftJ(int waitAfter) {
@@ -1230,16 +1209,11 @@ public class DesktopBot {
 	}
 	
 	public void shiftTab() {
-		robot.keyPress(KeyEvent.VK_SHIFT);
-		robot.keyPress(KeyEvent.VK_TAB);
-		robot.keyRelease(KeyEvent.VK_TAB);
-		robot.keyRelease(KeyEvent.VK_SHIFT);
-		sleep(defaultSleepAfterAction);
+		shiftTab(sleepAfterAction);
 	}
 	
 	public void shiftTab(int waitAfter) {
-		shiftTab();
-		sleep(waitAfter);
+		doubleKeyActions(KeyEvent.VK_SHIFT, KeyEvent.VK_TAB, waitAfter);
 	}
 	
 	/**
@@ -1257,85 +1231,36 @@ public class DesktopBot {
 		return null;
 	}
 	
-
-	public void typeLeft(int waitAfter) {
-		typeLeft();
-		sleep(waitAfter);
+	public void keyWindows() {
+		keyWindows(sleepAfterAction);
 	}
 	
-	public void typeLeft() {
-		robot.keyPress(KeyEvent.VK_LEFT);
-		robot.keyRelease(KeyEvent.VK_LEFT);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void typeDown(int waitAfter) {
-		typeDown();
-		sleep(waitAfter);
-	}
-	
-	public void typeDown() {
-		robot.keyPress(KeyEvent.VK_DOWN);
-		robot.keyRelease(KeyEvent.VK_DOWN);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void typeUp(int waitAfter) {
-		typeUp();
-		sleep(waitAfter);
-	}
-	
-	public void typeUp() {
-		robot.keyPress(KeyEvent.VK_UP);
-		robot.keyRelease(KeyEvent.VK_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	
-	public void typeWindows() {
-		robot.keyPress(KeyEvent.VK_WINDOWS);
-		robot.keyRelease(KeyEvent.VK_WINDOWS);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void typeWindows(int waitAfter) {
-		typeWindows();
-		sleep(waitAfter);
+	public void keyWindows(int waitAfter) {
+		singleKeyAction(KeyEvent.VK_WINDOWS, waitAfter);
 	}
 	
 	public void space() {
-		robot.keyPress(KeyEvent.VK_SPACE);
-		robot.keyRelease(KeyEvent.VK_SPACE);
-		sleep(defaultSleepAfterAction);
+		space(sleepAfterAction);
 	}
 	
 	public void space(int waitAfter) {
-		space();
-		sleep(waitAfter);
+		singleKeyAction(KeyEvent.VK_SPACE, waitAfter);
 	}
 	
 	public void backspace() {
-		robot.keyPress(KeyEvent.VK_BACK_SPACE);
-		robot.keyRelease(KeyEvent.VK_BACK_SPACE);
-		sleep(defaultSleepAfterAction);
+		backspace(sleepAfterAction);
 	}
 	
 	public void backspace(int waitAfter) {
-		backspace();
-		sleep(waitAfter);
-		sleep(defaultSleepAfterAction);
+		singleKeyAction(KeyEvent.VK_BACK_SPACE, waitAfter);
 	}
 
 	public void delete() {
-		robot.keyPress(KeyEvent.VK_DELETE);
-		robot.keyRelease(KeyEvent.VK_DELETE);
-		sleep(defaultSleepAfterAction);
+		delete(sleepAfterAction);
 	}
 	
 	public void delete(int waitAfter) {
-		delete();
-		sleep(waitAfter);
-		sleep(defaultSleepAfterAction);
+		singleKeyAction(KeyEvent.VK_DELETE, waitAfter);
 	}
 	
 	/**
@@ -1725,4 +1650,5 @@ public class DesktopBot {
 		
 		return bestSegment;
 	}
+	
 }
