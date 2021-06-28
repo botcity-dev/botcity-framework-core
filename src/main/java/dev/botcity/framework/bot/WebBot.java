@@ -142,7 +142,7 @@ public class WebBot {
 	
 	private void setDownloadFolder() {
         if(devToolsService != null) {
-        	devToolsService.getBrowser().setDownloadBehavior(SetDownloadBehaviorBehavior.ALLOW, null, this.downloadFolderPath);
+        	devToolsService.getBrowser().setDownloadBehavior(SetDownloadBehaviorBehavior.ALLOW, null, this.downloadFolderPath, true);
 		}
 	}
 	
@@ -1352,29 +1352,25 @@ public class WebBot {
 	
 	protected BufferedImage getScreenImage() {
 		LayoutMetrics layoutMetrics = page.getLayoutMetrics();
-
 	    double width = layoutMetrics.getContentSize().getWidth();
 	    double height = layoutMetrics.getContentSize().getHeight();;
-
 		Viewport viewport = new Viewport();
 		viewport.setScale(1d);
-
 		viewport.setX(0d);
 		viewport.setY(0d);
-
 		viewport.setWidth(width);
 		viewport.setHeight(height);
-		
 		String data = "";
 		try {
-			data = page.captureScreenshot(CaptureScreenshotFormat.PNG, 100, viewport, Boolean.TRUE);
+			//Version 4.0
+			data = page.captureScreenshot(CaptureScreenshotFormat.PNG, 100, viewport, Boolean.FALSE, Boolean.TRUE);
+			//Version 3.0
+			//data = page.captureScreenshot(CaptureScreenshotFormat.PNG, 100, viewport, Boolean.TRUE);
 		} catch (Exception e) {
 			return getScreenImage();
 		}
-		
 		BufferedImage image = null;
 		byte[] imageByte;
-
 		imageByte = Base64.getDecoder().decode(data);
 		ByteArrayInputStream bis = new ByteArrayInputStream(imageByte);
 		try {

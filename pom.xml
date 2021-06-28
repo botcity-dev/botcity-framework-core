@@ -5,7 +5,7 @@
 
 	<groupId>dev.botcity</groupId>
 	<artifactId>botcity-framework-core</artifactId>
-	<version>1.1.0</version>
+	<version>1.2.0</version>
 	<packaging>jar</packaging>
 
 	<name>botcity-framework-core</name>
@@ -79,7 +79,7 @@
 		<dependency>
 			<groupId>com.github.kklisura.cdt</groupId>
 			<artifactId>cdt-java-client</artifactId>
-			<version>3.0.0</version>
+			<version>4.0.0</version>
 		</dependency>
 
 		<dependency>
