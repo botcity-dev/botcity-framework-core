@@ -191,9 +191,11 @@ public class WebBot {
 		Bounds b = new Bounds();
 		b.setWidth(this.scrennSize.width);
 		b.setHeight(this.scrennSize.height);
+		b.setLeft(0);
+		b.setTop(0);
+		b.setWindowState(WindowState.NORMAL);
 		devToolsService.getBrowser().setWindowBounds(devToolsService.getBrowser().getWindowForTarget().getWindowId(), b);
-		devToolsService.getEmulation().setVisibleSize(this.scrennSize.width, this.scrennSize.height);
-		//.getEmulation().setPageScaleFactor((double) 1);
+		devToolsService.getEmulation().setDeviceMetricsOverride(this.scrennSize.width, this.scrennSize.height, 1.0, false);
 	}
 	
 	public boolean isHeadless() {
@@ -471,8 +473,8 @@ public class WebBot {
 	
 	public ChromeDevToolsService navigateTo(String uri){
 		startBrowser();
-		page.navigate(uri);	
-		setScreenResolution(1600, 900);
+		page.navigate(uri);
+		setScreenResolution();
 		return devToolsService;
 	}
 	
@@ -1352,25 +1354,32 @@ public class WebBot {
 	
 	protected BufferedImage getScreenImage() {
 		LayoutMetrics layoutMetrics = page.getLayoutMetrics();
-	    double width = layoutMetrics.getContentSize().getWidth();
-	    double height = layoutMetrics.getContentSize().getHeight();;
+
+	    double width = this.scrennSize.width;
+	    double height = this.scrennSize.height;
+
 		Viewport viewport = new Viewport();
 		viewport.setScale(1d);
+
 		viewport.setX(0d);
 		viewport.setY(0d);
+
 		viewport.setWidth(width);
 		viewport.setHeight(height);
+		
 		String data = "";
 		try {
 			//Version 4.0
-			data = page.captureScreenshot(CaptureScreenshotFormat.PNG, 100, viewport, Boolean.FALSE, Boolean.TRUE);
+			data = page.captureScreenshot(CaptureScreenshotFormat.PNG, 100, viewport, Boolean.TRUE, Boolean.TRUE);
 			//Version 3.0
 			//data = page.captureScreenshot(CaptureScreenshotFormat.PNG, 100, viewport, Boolean.TRUE);
 		} catch (Exception e) {
 			return getScreenImage();
 		}
+		
 		BufferedImage image = null;
 		byte[] imageByte;
+
 		imageByte = Base64.getDecoder().decode(data);
 		ByteArrayInputStream bis = new ByteArrayInputStream(imageByte);
 		try {
