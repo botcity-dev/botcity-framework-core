@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.net.URL;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -377,7 +378,13 @@ public class WebBot {
         return evaluation.getResult().getValue();
 	}
 	
-	public void addImage(String label, String path) {
+	/**
+	 * Add image of UI element to be recognized in automation processes. Check method find() and findText() to recognize such elements.
+	 * @param label
+	 * @param path
+	 * @throws IOException
+	 */
+	public void addImage(String label, String path) throws IOException {
 		File f = new File(path);
 		
 		// file outside jar?
@@ -385,8 +392,13 @@ public class WebBot {
 			mapImages.put(label, MarvinImageIO.loadImage(path));
 		else {
 			if(this.resourceClassLoader != null) {
-				ImageIcon img = new ImageIcon(this.resourceClassLoader.getResource(path));
-				mapImages.put("label", new MarvinImage(toBufferedImage(img.getImage())));
+				URL url = this.resourceClassLoader.getResource(path);
+				if(url != null) {
+					ImageIcon img = new ImageIcon(url);
+					mapImages.put(label, new MarvinImage(toBufferedImage(img.getImage())));
+				} else {
+					throw new IOException("Image File not found! Label: "+label+", path:"+path);
+				}
 			}
 		}
 	}
