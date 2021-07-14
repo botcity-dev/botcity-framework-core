@@ -663,6 +663,17 @@ public class DesktopBot {
 		moveAndclick();
 		sleep(sleepAfterAction);
 	}
+        
+	public void tripleClickAt(int x, int y) {
+		this.x = x;
+		this.y = y;
+		moveAndclick();
+		sleep(100);
+		moveAndclick();
+		sleep(100);
+		moveAndclick();
+		sleep(sleepAfterAction);
+	}
 	
 	/**
 	 * Scroll down wheel action.
