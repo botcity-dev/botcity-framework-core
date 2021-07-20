@@ -563,7 +563,17 @@ public class DesktopBot {
 		this.x = px;
 		this.y = py;
 		moveAndclick();
-		
+                sleep(sleepAfterAction);
+	}
+        
+        public void clickAt(int px, int py, int numClicks) {
+                this.x = px;
+                this.y = py;
+                for (int i = 0; i < numClicks; i++) {
+                    moveAndclick();
+                    sleep(100);                
+                }
+                sleep(sleepAfterAction);
 	}
 	
 	public void rightClickAt(int x, int y) {
@@ -664,17 +674,6 @@ public class DesktopBot {
 		sleep(sleepAfterAction);
 	}
         
-	public void tripleClickAt(int x, int y) {
-		this.x = x;
-		this.y = y;
-		moveAndclick();
-		sleep(100);
-		moveAndclick();
-		sleep(100);
-		moveAndclick();
-		sleep(sleepAfterAction);
-	}
-	
 	/**
 	 * Scroll down wheel action.
 	 * @param y wheel actions.
