@@ -839,8 +839,8 @@ public class DesktopBot {
 		robot.mouseRelease(InputEvent.BUTTON3_MASK);
 	}
 	
-	private void click(int waitAfter) {
-		moveAndclick();
+	public void click(int waitAfter) {
+		clickRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
 		sleep(waitAfter);
 	}
 	
