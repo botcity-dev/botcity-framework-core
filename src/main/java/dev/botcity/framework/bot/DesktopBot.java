@@ -673,6 +673,36 @@ public class DesktopBot {
 		moveAndclick();
 		sleep(sleepAfterAction);
 	}
+
+	/**
+	 * Click relative the current cursor (mouse) position
+	 * @param x 		horizontal offset to the cursor.
+	 * @param y 		vertical offset to the cursor.
+	 */
+	public void clickRelativeToCursor(int x, int y) {
+		Point p = MouseInfo.getPointerInfo().getLocation();
+		this.x = p.x + x;
+		this.y = p.y + y;
+		moveAndclick();
+		sleep(sleepAfterAction);
+	}
+	
+	public void rightClickRelativeToCursor(int x, int y) {
+		Point p = MouseInfo.getPointerInfo().getLocation();
+		this.x = p.x + x;
+		this.y = p.y + y;
+		moveAndRightClick();
+		sleep(sleepAfterAction);
+	}
+
+
+	public void clickAtCursor() {
+		clickRelativeToCursor(0, 0);
+	}
+	
+	public void rightClickAtCursor() {
+		rightClickRelativeToCursor(0, 0);
+	}
         
 	/**
 	 * Scroll down wheel action.
