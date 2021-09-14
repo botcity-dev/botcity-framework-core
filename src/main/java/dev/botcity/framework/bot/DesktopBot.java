@@ -617,6 +617,16 @@ public class DesktopBot {
 	}
 	
 	/**
+	 * Click in last found UI element.
+	 */
+	public void setCurrentElement(UIElement el) {
+		this.x = el.getX();
+		this.y = el.getY();
+		this.visualElem = el.getImage();
+		this.lastElement = el;
+	}
+	
+	/**
 	 * Right Click in last found UI element.
 	 */
 	public void rightClick() {
@@ -1697,5 +1707,160 @@ public class DesktopBot {
 		}
 		
 		return bestSegment;
+	}
+	
+	public List<UIElement> findAllUntil(String elementId, double elementMatching, int maxWaitingTime) {
+		return findAllUntil(elementId, getImageFromMap(elementId), null, null, null, null, null, elementMatching, maxWaitingTime);
+	}
+	
+	public List<UIElement> findAllUntil
+	(
+		String elementId, 
+		MarvinImage visualElem,
+		Integer startX,
+		Integer startY,
+		Integer searchWindowWidth,
+		Integer searchWindowHeight,
+		Integer threshold, 
+		Double elementMatching, 
+		int maxWaitingTime
+	) {
+		long startTime = System.currentTimeMillis();
+		while(true) {
+			
+			if(System.currentTimeMillis() - startTime > maxWaitingTime) {
+				return null;
+			}
+			sleep(100);
+			screenshot();
+			
+			Point p=null;
+			
+			startX = (startX != null ? startX : 0);
+			startY = (startY != null ? startY : 0);
+			searchWindowWidth = (searchWindowWidth != null ? searchWindowWidth : screen.getWidth());
+			searchWindowHeight = (searchWindowHeight != null ? searchWindowHeight : screen.getHeight());
+			
+			List<UIElement> elements=null;
+			if(threshold != null) {
+				
+				
+				
+				MarvinImage screenCopy = screen.clone();
+				thresholding(screenCopy, threshold);
+				
+				MarvinImage visualElemCopy = visualElem.clone();
+				thresholding(visualElemCopy, threshold);
+				
+				
+				
+				//p = getElementCoords(visualElemCopy, screenCopy, startX, startY, searchWindowWidth, searchWindowHeight, elementMatching, best);
+				
+				elements = findAllSubimages(visualElemCopy, screenCopy, startX, startY, searchWindowWidth, searchWindowHeight, elementMatching);
+				
+				
+				
+				if(debug) {
+					long timestamp = System.currentTimeMillis();
+					String match = (elements.isEmpty() ? "false" : "true");
+					MarvinImageIO.saveImage(screen, "./debug/"+timestamp+"_screen"+"_"+elementId+"_"+match+".png");
+					MarvinImageIO.saveImage(visualElem, "./debug/"+timestamp+"_"+elementId+"_"+match+".png");
+					MarvinImageIO.saveImage(screenCopy, "./debug/"+timestamp+"_screen_bw_"+elementId+"_"+match+".png");
+					MarvinImageIO.saveImage(visualElemCopy, "./debug/"+timestamp+"_"+elementId+"_bw"+"_"+match+".png");
+				}
+				
+			} else {
+				elements = findAllSubimages(visualElem, screen, startX, startY, searchWindowWidth, searchWindowHeight, elementMatching);
+				
+				if(debug) {
+					long timestamp = System.currentTimeMillis();
+					String match = (elements.isEmpty() ? "false" : "true");
+					MarvinImageIO.saveImage(screen, "./debug/"+timestamp+"_screen"+"_"+elementId+"_"+match+".png");
+					MarvinImageIO.saveImage(visualElem, "./debug/"+timestamp+"_"+elementId+"_"+match+".png");
+				}
+			}
+			
+			// Matched?
+			if(elements != null && !elements.isEmpty()) {
+				return elements;
+			}
+		}
+	}
+	
+	
+	
+	public List<UIElement> findAllSubimages
+	(
+		MarvinImage subimage,
+		MarvinImage imageIn,
+		int startX,
+		int startY,
+		int searchWindowWidth,
+		int searchWindowHeight,
+		Double similarity
+	) {
+		List<UIElement> elements = new ArrayList<UIElement>();
+		int subImagePixels = subimage.getWidth()*subimage.getHeight();
+		boolean[][] processed=new boolean[imageIn.getWidth()][imageIn.getHeight()];
+		
+		int r1,g1,b1,r2,g2,b2;
+		// Full image
+		mainLoop:for(int y=startY; y<startY+searchWindowHeight; y++){
+			for(int x=startX; x<startX+searchWindowWidth; x++){
+				
+				if(processed[x][y]){
+					continue;
+				}
+				
+				int notMatched=0;
+				boolean match=true;
+				int colorThreshold = (int)(255 * colorSensibility);
+				
+				// subimage
+				if(y+subimage.getHeight() < imageIn.getHeight() && x+subimage.getWidth() < imageIn.getWidth()){
+				
+					
+					outerLoop:for(int i=0; i<subimage.getHeight(); i++){
+						for(int j=0; j<subimage.getWidth(); j++){
+							
+							if(processed[x+j][y+i]){
+								match=false;
+								break outerLoop;
+							}
+							
+							r1 = imageIn.getIntComponent0(x+j, y+i);
+							g1 = imageIn.getIntComponent1(x+j, y+i);
+							b1 = imageIn.getIntComponent2(x+j, y+i);
+							
+							r2 = subimage.getIntComponent0(j, i);
+							g2 = subimage.getIntComponent1(j, i);
+							b2 = subimage.getIntComponent2(j, i);
+							
+							if
+							(
+								Math.abs(r1-r2) > colorThreshold ||
+								Math.abs(g1-g2) > colorThreshold ||
+								Math.abs(b1-b2) > colorThreshold
+							){
+								notMatched++;
+								
+								if(notMatched > (1-similarity)*subImagePixels){
+									match=false;
+									break outerLoop;
+								}
+							}
+						}
+					}
+				} else{
+					match=false;
+				}
+				
+				if(match){
+					elements.add(new UIElement(x,y, subimage));
+				}
+			}
+		}
+		
+		return elements;
 	}
 }

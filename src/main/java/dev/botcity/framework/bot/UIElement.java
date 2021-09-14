@@ -15,6 +15,16 @@ public class UIElement {
 						width,
 						height;
 	
+	public UIElement() {}
+	
+	public UIElement(Integer x, Integer y, MarvinImage image) {
+		super();
+		this.image = image;
+		this.x = x;
+		this.y = y;
+		this.width = image.getWidth();
+		this.height = image.getHeight();
+	}
 	public MarvinImage getImage() {
 		return image;
 	}
