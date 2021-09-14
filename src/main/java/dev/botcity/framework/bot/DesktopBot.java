@@ -147,7 +147,33 @@ public class DesktopBot {
 	}
 	
 	private MarvinImage getImageFromMap(String label) {
-		return mapImages.get(label);
+		if(mapImages.containsKey(label)) {
+			return mapImages.get(label);
+		} else {
+			// find and insert the resource
+			
+			// 1. Local file in the project
+			String path = "./src/resources/"+label+".png";
+			File f = new File("./src/resources/"+label+".png");
+			if(f.exists()) {
+				try{	
+					addImage(label, path);	
+				} catch(Exception e) {e.printStackTrace();}
+				return getImageFromMap(label);
+			}
+			
+			// 2. File inside runnable jar
+			else {
+				URL url = this.resourceClassLoader.getResource(label+".png");
+				if(url != null) {
+					try{
+						addImage(label, label+".png");
+					} catch(Exception e) {e.printStackTrace();}
+					return getImageFromMap(label);
+				}
+			}
+			throw new RuntimeException(label + " not found at /src/resources or inside jar file.");
+		}
 	}
 	
 	public Robot getRobot() {
