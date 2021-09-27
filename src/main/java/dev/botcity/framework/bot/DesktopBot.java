@@ -1071,7 +1071,7 @@ public class DesktopBot {
 	 * Press a sequence of keys. Hold the keys in the specified order, then release them.
 	 * @param keys			array of key identification values like KeyEvent.VK_ENTER
 	 */
-	public void typeKeys(Integer interval, Integer... keys) {
+	public void typeKeys(Integer... keys) {
 		typeKeysWithInterval(100, keys);
 	}
 	
