@@ -116,10 +116,12 @@ public class EdgeConfig implements BrowserConfig {
         return cap;
     }
 
+    @SneakyThrows
     @Override
     public Object waitForDownloads(WebDriver driver) {
         if (!driver.getCurrentUrl().startsWith("edge://downloads")) {
             driver.get("edge://downloads/");
+            Thread.sleep(1000);
         }
         return ((JavascriptExecutor) driver).executeScript("var items = Array.from(document.querySelector(\".downloads-list\").querySelectorAll('[role=\"listitem\"]')); if(items.every(e => e.querySelector('[role=\"progressbar\"]') == null))return true;");
     }
