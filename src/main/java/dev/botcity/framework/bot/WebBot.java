@@ -1,1604 +1,2343 @@
 package dev.botcity.framework.bot;
-import static org.marvinproject.plugins.collection.MarvinPluginCollection.crop;
-import static org.marvinproject.plugins.collection.MarvinPluginCollection.thresholding;
 
-import java.awt.Dimension;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.Point;
-import java.awt.Toolkit;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.StringSelection;
-import java.awt.event.KeyEvent;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.net.URL;
-import java.nio.file.InvalidPathException;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import lombok.*;
 
-import javax.imageio.ImageIO;
-import javax.swing.ImageIcon;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 
-import org.apache.commons.io.FilenameUtils;
+import com.google.gson.Gson;
+
+import dev.botcity.framework.web.*;
+import dev.botcity.framework.web.browsers.BrowserConfig;
+import dev.botcity.framework.web.exceptions.ElementNotAvailableException;
+import dev.botcity.framework.web.browsers.Browser;
+
 import org.marvinproject.framework.image.MarvinImage;
-import org.marvinproject.framework.image.MarvinSegment;
 import org.marvinproject.framework.io.MarvinImageIO;
-import org.marvinproject.framework.plugin.MarvinImagePlugin;
-import org.marvinproject.plugins.image.transform.flip.Flip;
+import org.marvinproject.plugins.collection.MarvinPluginCollection;
 
-import com.github.kklisura.cdt.launch.ChromeLauncher;
-import com.github.kklisura.cdt.protocol.commands.Input;
-import com.github.kklisura.cdt.protocol.commands.Network;
-import com.github.kklisura.cdt.protocol.commands.Page;
-import com.github.kklisura.cdt.protocol.commands.Runtime;
-import com.github.kklisura.cdt.protocol.types.browser.Bounds;
-import com.github.kklisura.cdt.protocol.types.browser.PermissionType;
-import com.github.kklisura.cdt.protocol.types.browser.SetDownloadBehaviorBehavior;
-import com.github.kklisura.cdt.protocol.types.browser.WindowState;
-import com.github.kklisura.cdt.protocol.types.dom.Rect;
-import com.github.kklisura.cdt.protocol.types.input.DispatchKeyEventType;
-import com.github.kklisura.cdt.protocol.types.input.DispatchMouseEventType;
-import com.github.kklisura.cdt.protocol.types.input.MouseButton;
-import com.github.kklisura.cdt.protocol.types.page.CaptureScreenshotFormat;
-import com.github.kklisura.cdt.protocol.types.page.LayoutMetrics;
-import com.github.kklisura.cdt.protocol.types.page.LayoutViewport;
-import com.github.kklisura.cdt.protocol.types.page.Viewport;
-import com.github.kklisura.cdt.protocol.types.page.VisualViewport;
-import com.github.kklisura.cdt.protocol.types.runtime.Evaluate;
-import com.github.kklisura.cdt.services.ChromeDevToolsService;
-import com.github.kklisura.cdt.services.ChromeService;
-import com.github.kklisura.cdt.services.types.ChromeTab;
+import org.openqa.selenium.*;
+import org.openqa.selenium.remote.SessionId;
+import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.remote.http.HttpClient;
+import org.openqa.selenium.remote.http.HttpMethod;
+import org.openqa.selenium.remote.http.HttpRequest;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.openqa.selenium.remote.http.HttpResponse;
+import org.openqa.selenium.remote.HttpCommandExecutor;
+import org.openqa.selenium.support.ui.ExpectedCondition;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 
+import java.util.*;
+import java.io.File;
+import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import javax.imageio.ImageIO;
+import java.io.FileOutputStream;
+import java.io.ByteArrayInputStream;
+import java.nio.file.StandardCopyOption;
+import java.util.NoSuchElementException;
+
+/**
+ * Base class for Web Bots.
+ * Users must implement the `action` method in their classes.
+ */
+@Data
 public class WebBot {
+    private String driverPath = "";
+    private boolean headless = false;
+    private MutableCapabilities options;
+    private Browser browser = Browser.CHROME;
+    private MutableCapabilities capabilities;
+    private String downloadPath = System.getProperty("user.dir");
 
-	
-	private Integer 					x,
-										y;
-	
-	private MarvinImage 				screen,
-										visualElem;
-	
-	private UIElement					lastElement = new UIElement();
-	
-	private static MarvinImagePlugin 	flip;
-	
-	private boolean 					debug=false;
-	
-	private int 						defaultSleepAfterAction=300;
-	
-	private double						colorSensibility = 0.04;
-	
-	protected String lastClipboardText = "";
-	
-	private ClassLoader					resourceClassLoader;
-	
-	private Map<String, MarvinImage>	mapImages;
-	
-	private static ChromeLauncher launcher;
+    @Setter(AccessLevel.NONE)
+    private WebDriver driver;
 
-	private static ChromeService chromeService;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private State element = new State();
 
-	public static ChromeTab tab;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private String clipboard = "";
 
-	private static ChromeDevToolsService devToolsService;
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private int[] DIMENSIONS = {1600, 900};
 
-	private static Page page;
-	
-	private static Network network;
-	
-	private static Input input;
-	
-	private static Runtime run;
-	
-	private boolean firstTab = true;
-	
-	private static List<ChromeTab> tabs = new ArrayList<ChromeTab>();
-	
-	private static boolean headless = true;
-	
-	private static String downloadFolderPath = System.getProperty("user.home") + "/Desktop";
-	
-	private Dimension scrennSize = new Dimension(1600, 900);
-	
-	public WebBot() {		
-		try {
-			mapImages = new HashMap<String, MarvinImage>();
-		} catch(Exception e) {
-			e.printStackTrace();
-		}
-		screen = new MarvinImage(1,1);
-		
-		flip = new Flip();
-		flip.load();
-		flip.setAttribute("flip", "vertical");
-	}
-	
-	public void setColorSensibility(double colorSensibility) {
-		this.colorSensibility = colorSensibility;
-	}
-	
-	public double getColorSensibility() {
-		return this.colorSensibility;
-	}
-	
-	public void setDownloadFolder(String path) {
-		try {
-            Paths.get(path);
-            this.downloadFolderPath = path;
-            setDownloadFolder();   
-        } catch (InvalidPathException ex) {
-            ex.printStackTrace();
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final int DEFAULT_SLEEP_AFTER_ACTION = 300;
+
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private int x = 0;
+
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private int y = 0;
+
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private double colorSensibility = 0.04;
+
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private final Map<String, String> images = new HashMap<>();
+
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private BrowserConfig config;
+
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private CVFind cvFind = new CVFind();
+
+    /**
+     * Starts the selected browser.
+     */
+    public void startBrowser() {
+        this.config = WebDriverFactory.getWebDriver(this.browser, this.headless, this.options, this.capabilities, this.driverPath, this.downloadPath);
+        this.driver = this.config.getWebDriverDriver();
+        setScreenResolution();
+    }
+
+    /**
+     * Stops the Chrome browser and clean up the User Data Directory.
+     * <p>
+     * <b>Warning</b>:
+     * <p>
+     * After invoking this method, you will need to reassign your custom options and capabilities.
+     */
+    public void stopBrowser() {
+        if (this.driver == null) return;
+
+        try {
+            this.driver.close();
+            this.driver.quit();
+        } catch (Exception ignored) {
+        } finally {
+            this.options = null;
+            this.capabilities = null;
+            this.driver = null;
         }
-	}
-	
-	private void setDownloadFolder() {
-        if(devToolsService != null) {
-        	devToolsService.getBrowser().setDownloadBehavior(SetDownloadBehaviorBehavior.ALLOW, null, this.downloadFolderPath, true);
-		}
-	}
-	
-	public void setDownloadFileNameAndWaitTillDownloadCompleted(String nameWithoutExt) {
-		File chosenFile = null;
-		File directory = new File(this.downloadFolderPath);
-		while(chosenFile == null && directory.exists()) {
-			
-		    File[] files = directory.listFiles(File::isFile);
-		    long lastModifiedTime = Long.MIN_VALUE;
+    }
 
-		    if (files != null)
-		    {
-		        for (File file : files)
-		        {
-		            if (file.lastModified() > lastModifiedTime)
-		            {
-		                chosenFile = file;
-		                lastModifiedTime = file.lastModified();
-		            }
-		        }
-		    }
-		}
-	    
-	    if(nameWithoutExt != null) {
-	    	try {
-					String ext = FilenameUtils.getExtension(chosenFile.getName());
-					boolean flag = chosenFile.renameTo(new File(nameWithoutExt+"."+ext));
-					
-	    		} catch(Exception e) {
-	    		   e.printStackTrace();
-	    		}
-	    }
+    /**
+     * The WebDriver driver instance.
+     *
+     * @return The {@link org.openqa.selenium.WebDriver} driver instance
+     */
+    public WebDriver getDriver() {
+        return this.driver;
+    }
 
-	}
-	
-	public void waitTillDownloadCompleted() {
-		setDownloadFileNameAndWaitTillDownloadCompleted(null);
-	}
-	
-	public void setScreenResolution(int width, int height) {
-		this.scrennSize = new Dimension(width, height);
-	}
-	
-	private void setScreenResolution() {
-		Bounds b = new Bounds();
-		b.setWidth(this.scrennSize.width);
-		b.setHeight(this.scrennSize.height);
-		b.setLeft(0);
-		b.setTop(0);
-		b.setWindowState(WindowState.NORMAL);
-		devToolsService.getBrowser().setWindowBounds(devToolsService.getBrowser().getWindowForTarget().getWindowId(), b);
-		devToolsService.getEmulation().setDeviceMetricsOverride(this.scrennSize.width, this.scrennSize.height, 1.0, false);
-	}
-	
-	public boolean isHeadless() {
-		return headless;
-	}
-	
-	public void setHeadless(boolean headless) {
-		this.headless = headless;
-	}
-	
-	public void enableDebug(){
-		this.debug = true;
-	}
-	
-	public void setResourceClassLoader(ClassLoader classloader) {
-		this.resourceClassLoader = classloader;
-	}
-	
-	public void setCurrentTab(ChromeTab tab) {
-		this.tab = tab;
-	}
-	
-	public ChromeTab getCurrentTab() {
-		return tab;
-	}
-	
-	public void waitUntilBroserClosed() {
-		devToolsService.waitUntilClosed();
-	}
-	
-	public List<ChromeTab> getAllTabsOpen(){
-		List<ChromeTab> lstTabs = chromeService.getTabs();
-		List<ChromeTab> lstRet = new ArrayList<ChromeTab>();
-		for(ChromeTab c : lstTabs) {
-			if(c.isPageType()){
-				lstRet.add(c);
-			}
-		}
-		return lstRet;
-	}
-	
-	public ChromeDevToolsService openTab() {
-		ChromeTab tab = chromeService.createTab();
-		List<ChromeTab> lstTabs = chromeService.getTabs();
-		if(firstTab) {
-			for(ChromeTab c : lstTabs) {
-				if(c.getId() != tab.getId()){
-					chromeService.closeTab(c);
-				}
-			}
-			firstTab = false;
-		}
-		devToolsService = chromeService.createDevToolsService(tab);
-		page = devToolsService.getPage();
-		network = devToolsService.getNetwork();
-		input = devToolsService.getInput();
-		network.enable();
-		run = devToolsService.getRuntime();
-		run.enable();
-		
-		List<PermissionType> permissions = new ArrayList<PermissionType>();
-		permissions.add(PermissionType.CLIPBOARD_READ_WRITE);
-		permissions.add(PermissionType.CLIPBOARD_SANITIZED_WRITE);
-		permissions.add(PermissionType.VIDEO_CAPTURE);
-		permissions.add(PermissionType.ACCESSIBILITY_EVENTS);
-		permissions.add(PermissionType.AUDIO_CAPTURE);
-		permissions.add(PermissionType.BACKGROUND_FETCH);
-		permissions.add(PermissionType.BACKGROUND_SYNC);
-		permissions.add(PermissionType.DURABLE_STORAGE);
-		permissions.add(PermissionType.GEOLOCATION);
-		permissions.add(PermissionType.IDLE_DETECTION);
-		permissions.add(PermissionType.MIDI);
-		permissions.add(PermissionType.MIDI_SYSEX);
-		permissions.add(PermissionType.NFC);
-		permissions.add(PermissionType.NOTIFICATIONS);
-		permissions.add(PermissionType.PAYMENT_HANDLER);	
-		devToolsService.getBrowser().grantPermissions(permissions);
-		
-		tabs.add(tab);
-		
-		return devToolsService;
-	}
-	
-	public void closeCurrentTab() {
-		closeTab(tab);
-	}
-	
-	public void closeTab(ChromeTab tab) {
-		for(ChromeTab t : tabs) {
-			if(t.getId() == tab.getId()) {
-				tabs.remove(t);
-				break;
-			}
-		}
-		chromeService.closeTab(tab);
-		List<ChromeTab> temp = chromeService.getTabs();
-		if(temp.size() > 0) {
-			int index  = 0;
-			for(int i= tabs.size(); i>=0; i--) {
-				if(tabs.get(i).isPageType()) {
-					index = i;
-					break;
-				}
-			}
-			chromeService.activateTab(tabs.get(index));
-			
-			devToolsService = chromeService.createDevToolsService(tabs.get(index));
-			page = devToolsService.getPage();
-			network = devToolsService.getNetwork();
-			input = devToolsService.getInput();
-			network.enable();
-			run = devToolsService.getRuntime();
-			run.enable();
-			
-			List<PermissionType> permissions = new ArrayList<PermissionType>();
-			permissions.add(PermissionType.CLIPBOARD_READ_WRITE);
-			permissions.add(PermissionType.CLIPBOARD_SANITIZED_WRITE);
-			permissions.add(PermissionType.VIDEO_CAPTURE);
-			permissions.add(PermissionType.ACCESSIBILITY_EVENTS);
-			permissions.add(PermissionType.AUDIO_CAPTURE);
-			permissions.add(PermissionType.BACKGROUND_FETCH);
-			permissions.add(PermissionType.BACKGROUND_SYNC);
-			permissions.add(PermissionType.DURABLE_STORAGE);
-			permissions.add(PermissionType.GEOLOCATION);
-			permissions.add(PermissionType.IDLE_DETECTION);
-			permissions.add(PermissionType.MIDI);
-			permissions.add(PermissionType.MIDI_SYSEX);
-			permissions.add(PermissionType.NFC);
-			permissions.add(PermissionType.NOTIFICATIONS);
-			permissions.add(PermissionType.PAYMENT_HANDLER);	
-			devToolsService.getBrowser().grantPermissions(permissions);
-		}
-	}
-	
-	public void browserMaximized() {
-		try {
-			if(devToolsService != null) {
-				Bounds b = new Bounds();
-				b.setWindowState(WindowState.MAXIMIZED);
-				devToolsService.getBrowser().setWindowBounds(devToolsService.getBrowser().getWindowForTarget().getWindowId(), b);
-			}else {
-				throw new NullPointerException("Error: You must first call the method: navigateTo('linkToNavegate')");
-			}
-		}catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public void browserMinimized() {
-		try {
-			if(devToolsService != null) {
-				Bounds b = new Bounds();
-				b.setWindowState(WindowState.MINIMIZED);
-				devToolsService.getBrowser().setWindowBounds(devToolsService.getBrowser().getWindowForTarget().getWindowId(), b);
-			}else {
-				throw new NullPointerException("Error: You must first call the method: navigateTo('linkToNavegate')");
-			}
-		}catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public void browserFullScren() {
-		try {
-			if(devToolsService != null) {
-				Bounds b = new Bounds();
-				b.setWindowState(WindowState.FULLSCREEN);
-				devToolsService.getBrowser().setWindowBounds(devToolsService.getBrowser().getWindowForTarget().getWindowId(), b);
-			}else {
-				throw new NullPointerException("Error: You must first call the method: navigateTo('linkToNavegate')");
-			}
-		}catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public Object executeJavascript(String code) {
-		Evaluate evaluation = run.evaluate(code);
-        return evaluation.getResult().getValue();
-	}
-	
-	/**
-	 * Add image of UI element to be recognized in automation processes. Check method find() and findText() to recognize such elements.
-	 * @param label
-	 * @param path
-	 * @throws IOException
-	 */
-	public void addImage(String label, String path) throws IOException {
-		File f = new File(path);
-		
-		// file outside jar?
-		if(f.exists())
-			mapImages.put(label, MarvinImageIO.loadImage(path));
-		else {
-			if(this.resourceClassLoader != null) {
-				URL url = this.resourceClassLoader.getResource(path);
-				if(url != null) {
-					ImageIcon img = new ImageIcon(url);
-					mapImages.put(label, new MarvinImage(toBufferedImage(img.getImage())));
-				} else {
-					throw new IOException("Image File not found! Label: "+label+", path:"+path);
-				}
-			}
-		}
-	}
-	
-	public void addImage(String label, MarvinImage image) {
-		mapImages.put(label, image);
-	}
-	
-	private static BufferedImage toBufferedImage(Image img)	{
-	    if (img instanceof BufferedImage)
-	    {
-	        return (BufferedImage) img;
-	    }
-	    // Create a buffered image with transparency
-	    BufferedImage bimage = new BufferedImage(img.getWidth(null), img.getHeight(null), BufferedImage.TYPE_INT_ARGB);
-	    // Draw the image on to the buffered image
-	    Graphics2D bGr = bimage.createGraphics();
-	    bGr.drawImage(img, 0, 0, null);
-	    bGr.dispose();
-	    // Return the buffered image
-	    return bimage;
-	}
-	
-	public MarvinImage getImageFromMap(String label) {
-		return mapImages.get(label);
-	}
-	
-	public UIElement getLastElement() {
-		return this.lastElement;
-	}
-	
-	public void redirectTo(String uri){
-		page.navigate(uri);
-	}
-	
-	public void startBrowser() {
-		
-		if(launcher == null)
-			launcher = new ChromeLauncher();
-		
-		if(chromeService == null)
-			chromeService = launcher.launch(headless);
-		
-		List<ChromeTab> lstTabs = chromeService.getTabs();
-		if(devToolsService == null) {
-			for(ChromeTab c : lstTabs) {
-				if(c.isPageType()){
-					tab = c;
-				}
-			}
-		}
-		
-		if(devToolsService == null) {
-			devToolsService = chromeService.createDevToolsService(tab);
-			page = devToolsService.getPage();
-			network = devToolsService.getNetwork();
-			input = devToolsService.getInput();
-			network.enable();
-			run = devToolsService.getRuntime();
-			run.enable();
-			devToolsService.getAccessibility().enable();
-			devToolsService.getApplicationCache().enable();
-			setDownloadFolder(this.downloadFolderPath);
-		
-			List<PermissionType> permissions = new ArrayList<PermissionType>();
-			permissions.add(PermissionType.CLIPBOARD_READ_WRITE);
-			permissions.add(PermissionType.CLIPBOARD_SANITIZED_WRITE);
-			permissions.add(PermissionType.VIDEO_CAPTURE);
-			permissions.add(PermissionType.ACCESSIBILITY_EVENTS);
-			permissions.add(PermissionType.AUDIO_CAPTURE);
-			permissions.add(PermissionType.BACKGROUND_FETCH);
-			permissions.add(PermissionType.BACKGROUND_SYNC);
-			permissions.add(PermissionType.DURABLE_STORAGE);
-			permissions.add(PermissionType.GEOLOCATION);
-			permissions.add(PermissionType.IDLE_DETECTION);
-			permissions.add(PermissionType.MIDI);
-			permissions.add(PermissionType.MIDI_SYSEX);
-			permissions.add(PermissionType.NFC);
-			permissions.add(PermissionType.NOTIFICATIONS);
-			permissions.add(PermissionType.PAYMENT_HANDLER);		
-			devToolsService.getBrowser().grantPermissions(permissions);
-		}
-	}
-	
-	public ChromeDevToolsService navigateTo(String uri){
-		startBrowser();
-		page.navigate(uri);
-		setScreenResolution();
-		return devToolsService;
-	}
-	
-	public boolean clickOn(String elementId){
-	    return clickOn(getImageFromMap(elementId));
-	}
-	
-	public boolean clickOn(MarvinImage visualElem) {
-		screenshot();
-		Point p = getElementCoordsCentered(visualElem, 0.95, false);
-		if(p != null) {
-			mouseMove(p.x, p.y);
-			input.dispatchMouseEvent(DispatchMouseEventType.MOUSE_PRESSED, (double)p.x, (double)p.y);
-			input.dispatchMouseEvent(DispatchMouseEventType.MOUSE_RELEASED, (double)p.x, (double)p.y);
-			
-			this.x = p.x;
-			this.y = p.y;
-			return true;
-		}
-		return false;
-	}
-	
-	public Integer getLastX() {
-		return this.x;
-	}
-	
-	public Integer getLastY() {
-		return this.y;
-	}
-	
-	
-	static int id=0;
-//	public boolean findUntil(String elementImage, int maxWaitingTime) {
-//		visualElem = MarvinImageIO.loadImage(elementImage);
-//		return findUntil(visualElem, maxWaitingTime);
-//	}
-	
-	public boolean findText(String elementId,int maxWaitingTime, boolean best) {
-		return findText(elementId, getImageFromMap(elementId), null, maxWaitingTime, best);
-	}
-	
-	public boolean findText(String elementId,int maxWaitingTime) {
-		return findText(elementId, getImageFromMap(elementId), null, maxWaitingTime);
-	}
-	
-	public boolean findText(String elementId, MarvinImage visualElem, int maxWaitingTime, boolean best) {
-		return findText(elementId, visualElem, null, maxWaitingTime, best);
-	}
-	
-	public boolean findText(String elementId, MarvinImage visualElem, int maxWaitingTime) {
-		return findText(elementId, visualElem, null, maxWaitingTime);
-	}
-	
-	public boolean findText(String elementId, Integer threshold, int maxWaitingTime, boolean best) {
-		return findText(elementId, getImageFromMap(elementId), threshold, maxWaitingTime, best);
-	}
-	
-	public boolean findText(String elementId, Integer threshold, int maxWaitingTime) {
-		return findText(elementId, getImageFromMap(elementId), threshold, maxWaitingTime);
-	}
-	
-	public boolean findText(String elementId, Integer threshold, double matching, int maxWaitingTime, boolean best) {
-		return findUntil(elementId, getImageFromMap(elementId), threshold, matching, maxWaitingTime, best);
-	}
-	
-	public boolean findText(String elementId, Integer threshold, double matching, int maxWaitingTime) {
-		return findUntil(elementId, getImageFromMap(elementId), threshold, matching, maxWaitingTime);
-	}
-	
-	public boolean findText(String elementId, MarvinImage visualElem, Integer threshold, double matching, int maxWaitingTime, boolean best) {
-		return findUntil(elementId, visualElem, threshold, matching, maxWaitingTime, best);
-	}
-	
-	public boolean findText(String elementId, MarvinImage visualElem, Integer threshold, double matching, int maxWaitingTime) {
-		return findUntil(elementId, visualElem, threshold, matching, maxWaitingTime);
-	}
-	
-	public boolean findText(String elementId, MarvinImage visualElem, Integer threshold, int maxWaitingTime, boolean best) {
-		return findText(elementId, visualElem, null, null, null, null, threshold, maxWaitingTime, best);
-	}
-	
-	public boolean findText(String elementId, MarvinImage visualElem, Integer startX, Integer startY, Integer searchWidth, Integer searchHeight, Integer threshold, int maxWaitingTime, boolean best) {
-		if(threshold == null) {
-			return findUntil(elementId, visualElem, startX, startY, searchWidth, searchHeight, threshold, 0.9, maxWaitingTime, best);
-		} else {
-			return findUntil(elementId, visualElem, startX, startY, searchWidth, searchHeight, threshold, 0.85, maxWaitingTime, best);
-		}
-	}
-	
-	public boolean findText(String elementId, MarvinImage visualElem, Integer threshold, int maxWaitingTime) {
-		return findText(elementId, visualElem, threshold, maxWaitingTime, false);
-	}
-	
-	public boolean find(String elementId, Double elementMatching, int maxWaitingTime, boolean best) {
-		return find(elementId, getImageFromMap(elementId), elementMatching, maxWaitingTime, best);
-	}
-	
-	public boolean find(String elementId, Double elementMatching, int maxWaitingTime) {
-		return find(elementId, getImageFromMap(elementId), elementMatching, maxWaitingTime);
-	}
-	
-	public boolean find(String elementId, int startX, int startY, int searchWidth, int searchHeight, Double elementMatching, int maxWaitingTime) {
-		return find(elementId, getImageFromMap(elementId), startX, startY, searchWidth, searchHeight, elementMatching, maxWaitingTime);
-	}
-	
-	public boolean find(String elementId, MarvinImage visualElem, Double elementMatching, int maxWaitingTime, boolean best) {
-		return findUntil(elementId, visualElem, null, elementMatching, maxWaitingTime, best);
-	}
-	
-	public boolean find(String elementId, MarvinImage visualElem, Double elementMatching, int maxWaitingTime) {
-		return findUntil(elementId, visualElem, null, elementMatching, maxWaitingTime);
-	}
-	
-	public boolean find(String elementId, MarvinImage visualElem, int startX, int startY, int searchWidth, int searchHeight, Double elementMatching, int maxWaitingTime) {
-		return findUntil(elementId, visualElem, startX, startY, searchWidth, searchHeight, null, elementMatching, maxWaitingTime);
-	}
-	
-	public boolean findUntil(String elementId, Integer threshold, Double elementMatching, int maxWaitingTime, boolean best) {
-		return findUntil(elementId, getImageFromMap(elementId), threshold, elementMatching, maxWaitingTime, best);
-	}
-	
-	public boolean findUntil(String elementId, Integer threshold, Double elementMatching, int maxWaitingTime) {
-		return findUntil(elementId, getImageFromMap(elementId), threshold, elementMatching, maxWaitingTime);
-	}
-	
-	public boolean findUntil(String elementId, MarvinImage visualElem, Integer threshold, Double elementMatching, int maxWaitingTime, boolean best) {
-		return findUntil(elementId, visualElem, null, null, null, null, threshold, elementMatching, maxWaitingTime, best);
-	}
-	
-	public boolean findUntil(String elementId, MarvinImage visualElem, Integer threshold, Double elementMatching, int maxWaitingTime) {
-		return findUntil(elementId, visualElem, null, null, null, null, threshold, elementMatching, maxWaitingTime, false);
-	}
-	
-	public boolean findUntil(String elementId, MarvinImage visualElem, int startX, int startY, Integer threshold, Double elementMatching, int maxWaitingTime) {
-		return findUntil(elementId, visualElem, null, null, null, null, threshold, elementMatching, maxWaitingTime, false);
-	}
-	
-	public boolean findUntil(String elementId, MarvinImage visualElem, int startX, int startY, int searchWidth, int searchHeight, Integer threshold, Double elementMatching, int maxWaitingTime) {
-		return findUntil(elementId, visualElem, startX, startY, searchWidth, searchHeight, threshold, elementMatching, maxWaitingTime, false);
-	}
-	
-	
-	
-	
-	public boolean findRelative
-	(
-		String elementId,
-		MarvinImage visualElem,
-		UIElement anchor,
-		int xDiff,
-		int yDiff,
-		int searchWindowWidth,
-		int searchWindowHeight,
-		Integer threshold,
-		Double elementMatching,
-		int maxWaitingTim,
-		boolean best
-	) {
-		return findUntil(elementId, visualElem, anchor.getX()+xDiff, anchor.getY()+yDiff, searchWindowWidth, searchWindowHeight, threshold, elementMatching, maxWaitingTim, best);
-	}
-	
-	public boolean findUntil
-	(
-		String elementId, 
-		MarvinImage visualElem,
-		Integer startX,
-		Integer startY,
-		Integer searchWindowWidth,
-		Integer searchWindowHeight,
-		Integer threshold, 
-		Double elementMatching, 
-		int maxWaitingTime,
-		boolean best
-	) {
-		long startTime = System.currentTimeMillis();
-		while(true) {
-			
-			if(System.currentTimeMillis() - startTime > maxWaitingTime) {
-				return false;
-			}
-			
-			sleep(100);
-			screenshot();
-			
-			Point p=null;
-			
-			startX = (startX != null ? startX : 0);
-			startY = (startY != null ? startY : 0);
-			searchWindowWidth = (searchWindowWidth != null ? searchWindowWidth : screen.getWidth());
-			searchWindowHeight = (searchWindowHeight != null ? searchWindowHeight : screen.getHeight());
-			
-			if(threshold != null) {
-				
-				
-				
-				MarvinImage screenCopy = screen.clone();
-				thresholding(screenCopy, threshold);
-				
-				MarvinImage visualElemCopy = visualElem.clone();
-				thresholding(visualElemCopy, threshold);
-				
-				p = getElementCoords(visualElemCopy, screenCopy, startX, startY, searchWindowWidth, searchWindowHeight, elementMatching, best);
-				
-				if(debug) {
-					long timestamp = System.currentTimeMillis();
-					String match = (p != null ? "true" : "false");
-					MarvinImageIO.saveImage(screen, "./debug/"+timestamp+"_screen"+"_"+elementId+"_"+match+".png");
-					MarvinImageIO.saveImage(visualElem, "./debug/"+timestamp+"_"+elementId+"_"+match+".png");
-					MarvinImageIO.saveImage(screenCopy, "./debug/"+timestamp+"_screen_bw_"+elementId+"_"+match+".png");
-					MarvinImageIO.saveImage(visualElemCopy, "./debug/"+timestamp+"_"+elementId+"_bw"+"_"+match+".png");
-				}
-				
-			} else {
-				p = getElementCoords(visualElem, startX, startY, searchWindowWidth, searchWindowHeight, elementMatching, best);
-				
-				if(debug) {
-					long timestamp = System.currentTimeMillis();
-					String match = (p != null ? "true" : "false");
-					MarvinImageIO.saveImage(screen, "./debug/"+timestamp+"_screen"+"_"+elementId+"_"+match+".png");
-					MarvinImageIO.saveImage(visualElem, "./debug/"+timestamp+"_"+elementId+"_"+match+".png");
-				}
-			}
-			
-			if(p != null) {
-				this.visualElem = visualElem;
-				
-				if(debug)
-					System.out.println("found:"+p.x+","+p.y+": "+elementId);
-				
-				this.x = p.x;
-				this.y = p.y;
-				
-				lastElement.setX(p.x);
-				lastElement.setY(p.y);
-				lastElement.setImage(this.visualElem);
-				
-				return true;
-			}
-		}
-	}
-	
-	public Point getCoordinates(String elementImage, int maxWaitingTime, boolean best) {
-		long startTime = System.currentTimeMillis();
-		while(true) {
-			
-			if(System.currentTimeMillis() - startTime > maxWaitingTime) {
-				return null;
-			}
-			
-			sleep(300);
-			screenshot();
-			visualElem = MarvinImageIO.loadImage(elementImage);
-			Point p = getElementCoords(visualElem, 0.95, best);
-			
-			if(p != null) {
-				
-				if(debug)
-					System.out.println("found:"+p.x+","+p.y+": "+elementImage);
-				
-				return p;
-			}
-		}
-	}
-	
-	public boolean findLastUntil(String elementId, int maxWaitingTime){
-	     return findLastUntil(elementId, getImageFromMap(elementId), maxWaitingTime);
-	}
-	
-	public boolean findLastUntil(String elementId, MarvinImage visualElem, int maxWaitingTime) {
-		return findLastUntil(elementId, visualElem, null, maxWaitingTime);
-	}
-	
-	public boolean findLastUntil(String elementId, MarvinImage visualElem, Integer threshold, int maxWaitingTime) {
-		long startTime = System.currentTimeMillis();
-		while(true) {
-			
-			if(System.currentTimeMillis() - startTime > maxWaitingTime) {
-				return false;
-			}
-			
-			sleep(300);
-			screenshot();
-			
-			MarvinImage screenCopy = screen.clone();
-			flip.process(screen, screenCopy);
-			
-			MarvinImage visualElemCopy = visualElem.clone();
-			flip.process(visualElem, visualElemCopy);
-			
-			Point p;
-			
-			if(threshold != null) {
-				
-				thresholding(screenCopy, threshold);
-				thresholding(visualElemCopy, threshold);
-				
-				if(debug) {
-					MarvinImageIO.saveImage(screenCopy, "./debug/screenCopy.png");
-					MarvinImageIO.saveImage(visualElemCopy, "./debug/visualElemCopy.png");
-				}
-				
-				p = getElementCoords(visualElemCopy, screenCopy, 0.95, false);
-			} else {
-				p = getElementCoords(visualElemCopy, screenCopy, 0.95, false);
-			}
-			
-			if(p != null) {
-				this.visualElem = visualElem;
-				
-				if(debug)
-					System.out.println("found:"+p.x+","+p.y+": "+elementId);
-				
-				this.x = p.x;
-				this.y = screen.getHeight()-(p.y+visualElem.getHeight());
-				return true;
-			}
-		}
-	}
-	
-	private void mouseMove(int px, int py) {
-		input.dispatchMouseEvent(DispatchMouseEventType.MOUSE_MOVED, (double)px, (double)py);
-		input.dispatchMouseEvent(DispatchMouseEventType.MOUSE_MOVED, (double)px, (double)py);
-		
-		this.x = px;
-		this.y = py;
-	}
-	
-	public void clickAt(int px, int py) {
-		this.x = px;
-		this.y = py;
-		moveAndclick(1);
-	}
-	
-	public void click() {
-		clickRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void doubleclick() {
-		doubleClickRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void clickRelative(int x, int y) {
-		this.x += x;
-		this.y += y;
-		moveAndclick(1);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void doubleClickRelative(int x, int y) {
-		this.x += x;
-		this.y += y;
-		moveAndclick(2);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void tripleClickRelative(int x, int y) {
-		this.x += x;
-		this.y += y;
-		moveAndclick(3);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void scrollDown(int y) {
-		input.dispatchMouseEvent(DispatchMouseEventType.MOUSE_WHEEL, 0.0, 0.0, null, null , null, null, null, null, null, null, null, null, 0.0, (double)y, null);
-	}
-	
-	public void scrollUp(int y) {
-		input.dispatchMouseEvent(DispatchMouseEventType.MOUSE_WHEEL, 0.0, 0.0, null, null , null, null, null, null, null, null, null, null, 0.0, (double)-y, null);
-	}
-	
-	public void move() {
-		moveRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
-	}
-	
-	public void moveTo(int x, int y) {
-		mouseMove(x, y);
-		this.x = x;
-		this.y = y;
-	}
-	
-	public void moveRelative(int x, int y) {
-		mouseMove(this.x+x, this.y+y);
-	}
-	
-	public void moveRandom(int rangeX, int rangeY) {
-		int x = (int)Math.round((Math.random()*rangeX));
-		int y = (int)Math.round((Math.random()*rangeY));
-		moveRelative(x, y);
-	}
-	
-	public void type(String text) {
-		for(int i=0; i<text.length(); i++) {
-			typeKey(text.charAt(i));
-		}
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void typeWaitAfterChars(String text, int waitAfterChars) {
-		for(int i=0; i<text.length(); i++) {
-			typeKey(text.charAt(i));
-			sleep(waitAfterChars);
-		}
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void typeWaitAfterChars(String text, int waitAfterChars, int waitAfter) {
-		typeWaitAfterChars(text, waitAfterChars);
-		sleep(waitAfter);
-	}
-	
-	public void type(String text, int waitAfterChars, int waitAfter) {
-		typeWaitAfterChars(text, waitAfterChars);
-		sleep(waitAfter);
-	}
-	
-	public void type(String text, int waitAfter) {
-		type(text);
-		sleep(waitAfter);
-	}
-	
-	public void paste(String text) {
-		paste(text, 0);
-	}
-	
-	public void paste(String text, int waitAfter) {
-		executeJavascript("var elementfocused = document.activeElement; function copyStringToClipboard(str) { var el = document.createElement('textarea'); el.value = str; el.setAttribute('readonly', ''); el.style = { position: 'absolute', left: '-9999px' }; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); }copyStringToClipboard('"+text+"'); elementfocused.focus();");
-		sleep(1000);
-		String[] commands = {"Paste"};
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, null, null, null, null, null, null, null, Arrays.asList(commands));
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(waitAfter);
-	}
-	
-	
-	public void copyToClipboard(String text, int waitAfter) {
-		try {
-			copyToClipboard(text);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		sleep(waitAfter);
-	}
-	
-	public void copyToClipboard(String text) throws Exception {
-		if(!headless) {
-			StringSelection stringSelection = new StringSelection(text);
-			Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-			clipboard.setContents(stringSelection, null);
-		}else {
-			throw new Exception("The clipboard functionality is only avaliable out of Headless mode.");
-		}
-	}
-	
-	private void moveAndclick(int count) {
-		input.dispatchMouseEvent(DispatchMouseEventType.MOUSE_PRESSED, (double)this.x, (double)this.y, null, null , MouseButton.LEFT, null, count, null, null, null, null, null, null, null, null);
-		input.dispatchMouseEvent(DispatchMouseEventType.MOUSE_RELEASED, (double)this.x, (double)this.y, null, null , MouseButton.LEFT, null, count, null, null, null, null, null, null, null, null);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	private void click(int waitAfter) {
-		moveAndclick(1);
-		sleep(waitAfter);
-	}
-	
-	public void tab() {
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "Tab", 9, 9, null, null, null, null, null);
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void tab(int waitAfter) {
-		tab();
-		sleep(waitAfter);
-	}
-	
-	public void keyRight() {
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "Right", KeyEvent.VK_RIGHT, KeyEvent.VK_RIGHT, null, null, null, null, null);
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void keyRight(int waitAfter) {
-		keyRight();
-		sleep(waitAfter);
-	}
-	
-	public void enter() {
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, "\r", "\r", null, null, "Enter", 13, 13, null, null, null, null, null);
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void keyEnter(int waitAfter) {
-		enter();
-		sleep(waitAfter);
-	}
-	
-	public void keyEnd() {
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "End", KeyEvent.VK_END, KeyEvent.VK_END, null, null, null, null, null);
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void keyEnd(int waitAfter) {
-		keyEnd();
-		sleep(waitAfter);
-	}
-	
-	public void keyEsc() {
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "Escape", KeyEvent.VK_ESCAPE, KeyEvent.VK_ESCAPE, null, null, null, null, null);
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void keyEsc(int waitAfter) {
-		keyEsc();
-		sleep(waitAfter);
-	}
-	
-	public void keyF1() {					input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "F1", KeyEvent.VK_F1, KeyEvent.VK_F1, null, null, null, null, null);		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);	sleep(defaultSleepAfterAction);}
-	public void keyF2() {					input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "F2", KeyEvent.VK_F2, KeyEvent.VK_F2, null, null, null, null, null);		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);	sleep(defaultSleepAfterAction);}
-	public void keyF3() {					input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "F3", KeyEvent.VK_F3, KeyEvent.VK_F3, null, null, null, null, null);		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);	sleep(defaultSleepAfterAction);}
-	public void keyF4() {					input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "F4", KeyEvent.VK_F4, KeyEvent.VK_F4, null, null, null, null, null);		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);	sleep(defaultSleepAfterAction);}
-	public void keyF5() {					input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "F5", KeyEvent.VK_F5, KeyEvent.VK_F5, null, null, null, null, null);		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);	sleep(defaultSleepAfterAction);}
-	public void keyF6() {					input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "F6", KeyEvent.VK_F6, KeyEvent.VK_F6, null, null, null, null, null);		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);	sleep(defaultSleepAfterAction);}
-	public void keyF7() {					input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "F7", KeyEvent.VK_F7, KeyEvent.VK_F7, null, null, null, null, null);		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);	sleep(defaultSleepAfterAction);}
-	public void keyF8() {					input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "F8", KeyEvent.VK_F8, KeyEvent.VK_F8, null, null, null, null, null);		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);	sleep(defaultSleepAfterAction);}
-	public void keyF9() {					input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "F9", KeyEvent.VK_F9, KeyEvent.VK_F9, null, null, null, null, null);		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);	sleep(defaultSleepAfterAction);}
-	public void keyF10() {					input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "F10", KeyEvent.VK_F10, KeyEvent.VK_F10, null, null, null, null, null);	input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);	sleep(defaultSleepAfterAction);}
-	public void keyF11() {					input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "F11", KeyEvent.VK_F11, KeyEvent.VK_F11, null, null, null, null, null);	input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);	sleep(defaultSleepAfterAction);}
-	public void keyF12() {					input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "F12", KeyEvent.VK_F12, KeyEvent.VK_F12, null, null, null, null, null);	input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);	sleep(defaultSleepAfterAction);}
-	
-	public void keyF1(int waitAfter) 	{	keyF1();	sleep(waitAfter);	}
-	public void keyF2(int waitAfter) 	{	keyF2();	sleep(waitAfter);	}
-	public void keyF3(int waitAfter) 	{	keyF3();	sleep(waitAfter);	}
-	public void keyF4(int waitAfter) 	{	keyF4();	sleep(waitAfter);	}
-	public void keyF5(int waitAfter) 	{	keyF5();	sleep(waitAfter);	}
-	public void keyF6(int waitAfter) 	{	keyF6();	sleep(waitAfter);	}
-	public void keyF7(int waitAfter) 	{	keyF7();	sleep(waitAfter);	}
-	public void keyF8(int waitAfter) 	{	keyF8();	sleep(waitAfter);	}
-	public void keyF9(int waitAfter) 	{	keyF9();	sleep(waitAfter);	}
-	public void keyF10(int waitAfter) 	{	keyF10();	sleep(waitAfter);	}
-	public void keyF11(int waitAfter) 	{	keyF11();	sleep(waitAfter);	}
-	public void keyF12(int waitAfter) 	{	keyF12();	sleep(waitAfter);	}
-	
-//	public void holdShift() {
-//		robot.keyPress(KeyEvent.VK_SHIFT);
-//	}
-//	
-//	public void holdShift(int waitAfter) {
-//		robot.keyPress(KeyEvent.VK_SHIFT);
-//		sleep(waitAfter);
-//	}
-//	
-//	public void releaseShift() {
-//		robot.keyRelease(KeyEvent.VK_SHIFT);
-//	}
-	
-	public void typeKeys(Integer... keys) {
-		// Press
-		for(int i=0; i<keys.length; i++){
-			Field[] fields = java.awt.event.KeyEvent.class.getDeclaredFields();
-			for (Field f : fields) {
-			    if (Modifier.isStatic(f.getModifiers())) {
-			        input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, f.getName(), keys[i], keys[i], null, null, null, null, null);
-			    } 
-			}
-			sleep(100);
-		}
-		
-		// release
-		for(int i=keys.length-1; i>=0; i--){
-			Field[] fields = java.awt.event.KeyEvent.class.getDeclaredFields();
-			for (Field f : fields) {
-			    if (Modifier.isStatic(f.getModifiers())) {
-			        input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP, null, null, null, null, null, null, f.getName(), keys[i], keys[i], null, null, null, null, null);
-			    } 
-			}
-			sleep(100);
-		}
-	}
-	
-//	public void altE() {
-//		robot.keyPress(KeyEvent.VK_ALT);
-//		robot.keyPress(KeyEvent.VK_E);
-//		robot.keyRelease(KeyEvent.VK_E);
-//		robot.keyRelease(KeyEvent.VK_ALT);
-//		sleep(defaultSleepAfterAction);
-//	}
-//	
-//	public void altE(int waitAfter) {
-//		altE();
-//		sleep(waitAfter);
-//	}
-		
-	public void controlC() {
-		executeJavascript("var text = ''; if (window.getSelection) { text = window.getSelection().toString(); } else if (document.selection && document.selection.type != 'Control') { text = document.selection.createRange().text; }");
-		executeJavascript("if( null == document.getElementById('clipboardTransferText')){ let el = document.createElement('textarea'); el.value = ''; el.setAttribute('readonly', ''); el.style = {position: 'absolute', left: '-9999px'}; el.id = 'clipboardTransferText'; document.body.appendChild(el); } document.getElementById('clipboardTransferText').value = text;");
-		String[] commands = {"Copy"};
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, null, null, null, null, null, null, null, Arrays.asList(commands));
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void controlC(int waitAfter) {
-		controlC();
-		sleep(waitAfter);
-	}
-	
-	public void controlV() {
-		String[] commands = {"Paste"};
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, null, null, null, null, null, null, null, Arrays.asList(commands));
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void controlA() {
-		String[] commands = {"SelectAll"};
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, null, null, null, null, null, null, null, Arrays.asList(commands));
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void controlA(int waitAfter) {
-		controlA();
-		sleep(waitAfter);
-	}
-	
-	public void scrollToEndOfDocument() {
-		String[] commands = {"ScrollToEndOfDocument"};
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, null, null, null, null, null, null, null, Arrays.asList(commands));
-		sleep(500);
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void scrollToEndOfDocument(int waitAfter) {
-		scrollToEndOfDocument();
-		sleep(waitAfter);
-	}
-	
-	public void scrollToBeginningOfDocument(int waitAfter) {
-		scrollToBeginningOfDocument();
-		sleep(waitAfter);
-	}
-	
-	public void scrollToBeginningOfDocument() {
-		String[] commands = {"ScrollToBeginningOfDocument"};
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, null, null, null, null, null, null, null, Arrays.asList(commands));
-		sleep(500);
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void scrollPageForward() {
-		String[] commands = {"ScrollPageForward"};
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, null, null, null, null, null, null, null, Arrays.asList(commands));
-		sleep(500);
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void scrollPageForward(int waitAfter) {
-		scrollPageForward();
-		sleep(waitAfter);
-	}
-	
-	public void scrollPageBackward(int waitAfter) {
-		scrollPageBackward();
-		sleep(waitAfter);
-	}
-	
-	public void scrollPageBackward() {
-		String[] commands = {"ScrollPageBackward"};
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, null, null, null, null, null, null, null, Arrays.asList(commands));
-		sleep(500);
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-//	public void controlF() {
-//		robot.keyPress(KeyEvent.VK_CONTROL);
-//		robot.keyPress(KeyEvent.VK_F);
-//		robot.keyRelease(KeyEvent.VK_F);
-//		robot.keyRelease(KeyEvent.VK_CONTROL);
-//		sleep(defaultSleepAfterAction);
-//	}
-//	
-//	public void controlF(int waitAfter) {
-//		controlF();
-//		sleep(waitAfter);
-//	}
-//	
-//	public void controlP() {
-//		robot.keyPress(KeyEvent.VK_CONTROL);
-//		robot.keyPress(KeyEvent.VK_P);
-//		robot.keyRelease(KeyEvent.VK_P);
-//		robot.keyRelease(KeyEvent.VK_CONTROL);
-//		sleep(defaultSleepAfterAction);
-//	}
-//	
-//	public void controlP(int waitAfter) {
-//		controlP();
-//		sleep(waitAfter);
-//	}
-//	
-//	public void controlU() {
-//		robot.keyPress(KeyEvent.VK_CONTROL);
-//		robot.keyPress(KeyEvent.VK_U);
-//		robot.keyRelease(KeyEvent.VK_U);
-//		robot.keyRelease(KeyEvent.VK_CONTROL);
-//		sleep(defaultSleepAfterAction);
-//	}
-//	
-//	public void controlU(int waitAfter) {
-//		controlU();
-//		sleep(waitAfter);
-//	}
-//	
-//	public void controlR() {
-//		robot.keyPress(KeyEvent.VK_CONTROL);
-//		robot.keyPress(KeyEvent.VK_R);
-//		robot.keyRelease(KeyEvent.VK_R);
-//		robot.keyRelease(KeyEvent.VK_CONTROL);
-//		sleep(defaultSleepAfterAction);
-//	}
-//	
-//	public void controlR(int waitAfter) {
-//		controlR();
-//		sleep(waitAfter);
-//	}
-//	
-//	public void controlEnd() {
-//		robot.keyPress(KeyEvent.VK_CONTROL);
-//		robot.keyPress(KeyEvent.VK_END);
-//		robot.keyRelease(KeyEvent.VK_END);
-//		robot.keyRelease(KeyEvent.VK_CONTROL);
-//		sleep(defaultSleepAfterAction);
-//	}
-//	
-//	public void controlEnd(int waitAfter) {
-//		controlEnd();
-//		sleep(waitAfter);
-//	}
-//	
-//	public void controlShiftP() {
-//		robot.keyPress(KeyEvent.VK_CONTROL);
-//		robot.keyPress(KeyEvent.VK_SHIFT);
-//		robot.keyPress(KeyEvent.VK_P);
-//		robot.keyRelease(KeyEvent.VK_P);
-//		robot.keyRelease(KeyEvent.VK_SHIFT);
-//		robot.keyRelease(KeyEvent.VK_CONTROL);
-//		sleep(defaultSleepAfterAction);
-//	}
-//	
-//	public void controlShiftP(int waitAfter) {
-//		controlShiftP();
-//		sleep(waitAfter);
-//	}
-//	
-//	public void controlShiftJ() {
-//		robot.keyPress(KeyEvent.VK_CONTROL);
-//		robot.keyPress(KeyEvent.VK_SHIFT);
-//		robot.keyPress(KeyEvent.VK_J);
-//		robot.keyRelease(KeyEvent.VK_J);
-//		robot.keyRelease(KeyEvent.VK_SHIFT);
-//		robot.keyRelease(KeyEvent.VK_CONTROL);
-//		sleep(defaultSleepAfterAction);
-//	}
-//	
-//	public void controlShiftJ(int waitAfter) {
-//		controlShiftJ();
-//		sleep(waitAfter);
-//	}
-//	
-//	public void shiftTab() {
-//		robot.keyPress(KeyEvent.VK_SHIFT);
-//		robot.keyPress(KeyEvent.VK_TAB);
-//		robot.keyRelease(KeyEvent.VK_TAB);
-//		robot.keyRelease(KeyEvent.VK_SHIFT);
-//		sleep(defaultSleepAfterAction);
-//	}
-//	
-//	public void shiftTab(int waitAfter) {
-//		shiftTab();
-//		sleep(waitAfter);
-//	}
-	
-	public String getClipboard(){
-		String text = "";
-		Object o = executeJavascript("document.getElementById('clipboardTransferText').value");
-		if(null != o) {
-			text = o.toString();
-			lastClipboardText = text;
-			executeJavascript("document.getElementById('clipboardTransferText').remove();");
-		}else {
-			text = lastClipboardText;
-		}
-		return text;
-	}
-	
+    /**
+     * Configures the browser dimensions.
+     * <p>
+     *
+     * @param width  The desired width.
+     * @param height The desired height.
+     */
+    public void setScreenResolution(int width, int height) {
+        Dimension dimension = new Dimension(width, height);
+        if (!this.headless) {
+            Dimension viewportSize = getViewportSize();
+            Dimension pageSize = getPageSize();
+            dimension = new Dimension((viewportSize.getWidth() - pageSize.getWidth()) + width, (viewportSize.getHeight() - pageSize.getHeight()) + height);
+        }
+        this.driver.manage().window().setSize(dimension);
+    }
 
-	public void typeLeft(int waitAfter) {
-		typeLeft();
-		sleep(waitAfter);
-	}
-	
-	public void typeLeft() {
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "Left", KeyEvent.VK_LEFT, KeyEvent.VK_LEFT, null, null, null, null, null);
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void typeDown(int waitAfter) {
-		typeDown();
-		sleep(waitAfter);
-	}
-	
-	public void typeDown() {
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "Down", KeyEvent.VK_DOWN, KeyEvent.VK_DOWN, null, null, null, null, null);
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void typeUp(int waitAfter) {
-		typeUp();
-		sleep(waitAfter);
-	}
-	
-	public void typeUp() {
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "Up", KeyEvent.VK_UP, KeyEvent.VK_UP, null, null, null, null, null);
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void space() {
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, " ", null, null, null, "Space", KeyEvent.VK_SPACE, KeyEvent.VK_SPACE, null, null, null, null, null);
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void space(int waitAfter) {
-		space();
-		sleep(waitAfter);
-	}
-	
-	public void backspace() {
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "Back Space", KeyEvent.VK_BACK_SPACE, KeyEvent.VK_BACK_SPACE, null, null, null, null, null);
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void backspace(int waitAfter) {
-		backspace();
-		sleep(waitAfter);
-		sleep(defaultSleepAfterAction);
-	}
+    /**
+     * Configures the browser dimensions with initial value (1600, 900).
+     */
+    private void setScreenResolution() {
+        setScreenResolution(this.DIMENSIONS[0], this.DIMENSIONS[1]);
+    }
 
-	public void delete() {
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_DOWN, null, null, null, null, null, null, "Delete", KeyEvent.VK_DELETE, KeyEvent.VK_DELETE, null, null, null, null, null);
-		input.dispatchKeyEvent(DispatchKeyEventType.KEY_UP);
-		sleep(defaultSleepAfterAction);
-	}
-	
-	public void delete(int waitAfter) {
-		delete();
-		sleep(waitAfter);
-		sleep(defaultSleepAfterAction);
-	}
+    /**
+     * Shortcut to maximize window on Windows OS.
+     */
+    public void maximizeWindow() {
+        this.driver.manage().window().maximize();
+    }
 
-	public MarvinImage getScreenShot() {
-		screenshot();
-		return screen;
-	}
-	
-	protected BufferedImage getScreenImage() {
-		LayoutMetrics layoutMetrics = page.getLayoutMetrics();
+    /**
+     * Capture and returns a screenshot from the browser.
+     * <p>
+     *
+     * @param region a {@link Region} instance with the left, top, width and height to crop the screen image.
+     * @return The screenshot {@link MarvinImage} object.
+     */
+    @SneakyThrows
+    public MarvinImage getScreenImage(Region region) {
+        byte[] bytes = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
+        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+        MarvinImage screenshot = new MarvinImage(ImageIO.read(bis));
 
-	    double width = this.scrennSize.width;
-	    double height = this.scrennSize.height;
+        if (region != null) {
+            MarvinPluginCollection.crop(screenshot.clone(), screenshot, 60, 32, 182, 62);
+            return screenshot;
+        }
 
-		Viewport viewport = new Viewport();
-		viewport.setScale(1d);
+        return screenshot;
+    }
 
-		viewport.setX(0d);
-		viewport.setY(0d);
+    /**
+     * Capture and returns a screenshot from the browser.
+     * <p>
+     *
+     * @return The screenshot {@link MarvinImage} object.
+     */
+    public MarvinImage getScreenImage() {
+        return getScreenImage(null);
+    }
 
-		viewport.setWidth(width);
-		viewport.setHeight(height);
-		
-		String data = "";
-		try {
-			//Version 4.0
-			data = page.captureScreenshot(CaptureScreenshotFormat.PNG, 100, viewport, Boolean.TRUE, Boolean.TRUE);
-			//Version 3.0
-			//data = page.captureScreenshot(CaptureScreenshotFormat.PNG, 100, viewport, Boolean.TRUE);
-		} catch (Exception e) {
-			return getScreenImage();
-		}
-		
-		BufferedImage image = null;
-		byte[] imageByte;
+    /**
+     * Capture a screenshot.
+     * <p>
+     *
+     * @return The screenshot {@link MarvinImage} object.
+     */
+    public MarvinImage getScreenshot() {
+        return getScreenImage();
+    }
 
-		imageByte = Base64.getDecoder().decode(data);
-		ByteArrayInputStream bis = new ByteArrayInputStream(imageByte);
-		try {
-			return ImageIO.read(bis);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return null;
-	}
-	
-	private void screenshot() {
-		screen.setBufferedImage(getScreenImage());
-	}
-	
-	public MarvinImage screenCut(int x, int y, int width, int height) {
-		MarvinImage img = new MarvinImage(getScreenImage());
-		MarvinImage imgOut = new MarvinImage(width, height);
-		crop(img, imgOut, x, y, width, height);
-		return imgOut;
-	}
-	
-	public void saveScreenshot(String path) {
-		screenshot();
-		MarvinImageIO.saveImage(screen, path);
-	}
-	
-	public void print(String text) {
-		System.out.println(text);
-	}
-	
-	public void wait(int ms) {
-		sleep(ms);
-	}
-	
-	private void sleep(int sleep) {
-		try {	
-			Thread.sleep(sleep);
-		} catch(Exception e) {
-			e.printStackTrace();
-		}
-	}
-	
-	private void typeKey(char c) {
-		input.dispatchKeyEvent(DispatchKeyEventType.CHAR, null, null, ""+c, null, null, null, null, null, null, null, null, null, null, null);
-	}
-	
-	private Point getElementCoords(MarvinImage sub, double matching, boolean best) {
-		return getElementCoords(sub, 0, 0, screen.getWidth(), screen.getHeight(), matching, best);
-	}
-	
-	private Point getElementCoords
-	(
-		MarvinImage sub, 
-		int startX, 
-		int startY,
-		int searchWindowWidth,
-		int searchWindowHeight,
-		double matching,
-		boolean best
-	) {
-		return getElementCoords(sub, screen, startX, startY, searchWindowWidth, searchWindowHeight, matching, best);
-	}
-	
-	private Point getElementCoords(MarvinImage sub, MarvinImage screen, double matching, boolean best) {
-		return getElementCoords(sub, screen, 0, 0, screen.getWidth(), screen.getHeight(), matching, best);
-	}
-	
-	private Point getElementCoords
-	(
-			MarvinImage sub, 
-			MarvinImage screen, 
-			int startX, 
-			int startY,
-			int searchWindowWidth,
-			int searchWindowHeight,
-			double matching,
-			boolean best
-	) {
-		long time=System.currentTimeMillis();
-		MarvinSegment seg = findSubimage(sub, screen, startX, startY, searchWindowWidth, searchWindowHeight, matching, best);
-		
-		if(seg != null) {
-			return new Point(seg.x1,seg.y1);
-		}
-		return null;
-	}
-	
-	private Point getElementCoordsCentered(MarvinImage sub, double matching, boolean best) {
-		Point p = getElementCoords(sub, matching, best);
-		
-		if(p != null) {
-			int x = p.x + (sub.getWidth() / 2);
-			int y = p.y + (sub.getHeight() / 2);
-			return new Point(x,y);
-		}
-		return null;
-	}
-	
-	//findSubimage(sub, screen, startX, startY, matching);
-	
-	
-	public MarvinSegment findSubimage
-	(
-		MarvinImage subimage,
-		MarvinImage imageIn,
-		int startX,
-		int startY,
-		Double similarity,
-		boolean findBest
-	) {
-		return findSubimage(subimage, imageIn, startX, startY, imageIn.getWidth(), imageIn.getHeight(), similarity, findBest);
-	}
-	
-	
-	public MarvinSegment findSubimage
-	(
-		MarvinImage subimage,
-		MarvinImage imageIn,
-		int startX,
-		int startY,
-		int searchWindowWidth,
-		int searchWindowHeight,
-		Double similarity,
-		boolean findBest
-	) {
-		List<MarvinSegment> segments = new ArrayList<MarvinSegment>();
-		int subImagePixels = subimage.getWidth()*subimage.getHeight();
-		boolean[][] processed=new boolean[imageIn.getWidth()][imageIn.getHeight()];
-		
-		double currScore;
-		double bestScore=0;
-		MarvinSegment bestSegment=null;
-		
-		int r1,g1,b1,r2,g2,b2;
-//		System.out.println("start - X: "+ startX + " Y: "+startY);
-//		System.out.println("imgIn: largura: "+imageIn.getWidth()+" - altura: "+ imageIn.getHeight());
-//		System.out.println("altura: "+ searchWindowHeight);
-//		System.out.println("largura: "+ searchWindowWidth);
-		// Full image
-		
-		int colorThreshold = (int)(255 * colorSensibility);
-		
-		mainLoop:for(int y=startY; y<startY+searchWindowHeight; y++){
-			for(int x=startX; x<startX+searchWindowWidth; x++){
-				
-				if(processed[x][y]){
-					continue;
-				}
-				
-				int notMatched=0;
-				boolean match=true;
-				// subimage
-				if(y+subimage.getHeight() < imageIn.getHeight() && x+subimage.getWidth() < imageIn.getWidth()){
-				
-					
-					outerLoop:for(int i=0; i<subimage.getHeight(); i++){
-						for(int j=0; j<subimage.getWidth(); j++){
-							
-							if(processed[x+j][y+i]){
-								match=false;
-								break outerLoop;
-							}
-							
-							r1 = imageIn.getIntComponent0(x+j, y+i);
-							g1 = imageIn.getIntComponent1(x+j, y+i);
-							b1 = imageIn.getIntComponent2(x+j, y+i);
-							
-							r2 = subimage.getIntComponent0(j, i);
-							g2 = subimage.getIntComponent1(j, i);
-							b2 = subimage.getIntComponent2(j, i);
-							
-							if
-							(
-								Math.abs(r1-r2) > colorThreshold ||
-								Math.abs(g1-g2) > colorThreshold ||
-								Math.abs(b1-b2) > colorThreshold
-							){
-								notMatched++;
-								
-								if(notMatched > (1-similarity)*subImagePixels){
-									match=false;
-									break outerLoop;
-								}
-							}
-						}
-					}
-				} else{
-					match=false;
-				}
-				
-				if(match){
-					
-					currScore = 1.0 - ((double)notMatched / subImagePixels);
-					
-					if(!findBest)
-						return new MarvinSegment(x,y,x+subimage.getWidth(), y+subimage.getHeight());
-					else {
-						if(currScore >= bestScore) {
-							bestScore = currScore;
-							bestSegment = new MarvinSegment(x,y,x+subimage.getWidth(), y+subimage.getHeight());
-						}
-					}
-				}
-			}
-		}
-		
-		return bestSegment;
-	}
+    /**
+     * Saves a screenshot in a given path.
+     * <p>
+     *
+     * @param output the filepath in which to save the screenshot.
+     * @return The filepath in which to save the screenshot.
+     */
+    @SneakyThrows
+    public String saveScreenshot(String output) {
+        MarvinImage image = getScreenImage();
+        MarvinImageIO.saveImage(image, output);
+        return output;
+    }
+
+    /**
+     * Capture a screenshot.
+     * <p>
+     *
+     * @param output the filepath in which to save the screenshot.
+     * @return The screenshot {@link MarvinImage} object.
+     */
+    public MarvinImage screenshot(String output) {
+        MarvinImage image = getScreenImage();
+        MarvinImageIO.saveImage(image, output);
+        return image;
+    }
+
+    /**
+     * Capture a screenshot from a region of the screen.
+     * <p>
+     *
+     * @param region a {@link Region} instance with the left, top, width and height.
+     * @return The screenshot {@link MarvinImage} object.
+     */
+    public MarvinImage screenCut(Region region) {
+        Dimension screensize = getPageSize();
+        int width = region.getWidth() != 0 ? region.getWidth() : screensize.width;
+        int height = region.getHeight() != 0 ? region.getHeight() : screensize.height;
+
+        MarvinImage imageOut = new MarvinImage();
+        MarvinPluginCollection.crop(getScreenshot(), imageOut, region.getX(), region.getY(), width, height);
+        return imageOut;
+    }
+
+    /**
+     * Returns the browser current page size.
+     * <p>
+     *
+     * @return The {@link org.openqa.selenium.Dimension} instance with page size.
+     */
+    public Dimension getPageSize() {
+        Long width = (Long) this.executeJavascript("return parseInt(window.innerWidth)");
+        Long height = (Long) this.executeJavascript("return parseInt(window.innerHeight)");
+        return new Dimension(width.intValue(), height.intValue());
+    }
+
+    /**
+     * Returns the display size in pixels.
+     * <p>
+     *
+     * @return The {@link org.openqa.selenium.Dimension} instance with display size.
+     */
+    public Dimension displaySize() {
+        return getPageSize();
+    }
+
+    /**
+     * Returns the browser current viewport size.
+     * <p>
+     *
+     * @return The {@link org.openqa.selenium.Dimension} instance with viewport size.
+     */
+    public Dimension getViewportSize() {
+        int width = this.driver.manage().window().getSize().getWidth();
+        int height = this.driver.manage().window().getSize().getHeight();
+        return new Dimension(width, height);
+    }
+
+    /**
+     * Opens the browser on the given URL.
+     * <p>
+     *
+     * @param url The URL to be visited.
+     */
+    public void navigateTo(String url) {
+        if (this.driver == null) {
+            this.startBrowser();
+        }
+
+        this.driver.get(url);
+    }
+
+    /**
+     * Opens the browser on the given URL.
+     * <p>
+     *
+     * @param url The URL to be visited.
+     */
+    public void browse(String url) {
+        navigateTo(url);
+    }
+
+    /**
+     * Get a list of tab handlers.
+     * <p>
+     *
+     * @return List of tab handlers.
+     */
+    public List<String> getTabs() {
+        return new ArrayList<>(this.driver.getWindowHandles());
+    }
+
+    /**
+     * Activate a tab given by the handle.
+     * <p>
+     *
+     * @param handle The tab or window handle.
+     */
+    public void activateTab(String handle) {
+        this.driver.switchTo().window(handle);
+    }
+
+    /**
+     * Create a new tab and navigate to the given URL.
+     * <p>
+     *
+     * @param url The desired URL.
+     */
+    public void createTab(String url) {
+        executeJavascript(String.format("window.open('%s', '_blank');", url));
+        List<String> tabs = getTabs();
+        String lastTab = tabs.get(tabs.size() - 1);
+        activateTab(lastTab);
+    }
+
+    /**
+     * Creates a new window with the given URL.
+     * <p>
+     *
+     * @param url The desired URL.
+     */
+    public void createWindow(String url) {
+        executeJavascript(String.format("window.open('%s', '_blank', 'location=0');", url));
+        List<String> tabs = getTabs();
+        String lastTab = tabs.get(tabs.size() - 1);
+        activateTab(lastTab);
+    }
+
+    /**
+     * Close the current active page (tab or window).
+     */
+    public void closePage() {
+        this.driver.close();
+
+        List<String> tabs = getTabs();
+        if (!tabs.isEmpty()) {
+            String lastTab = getTabs().get(getTabs().size() - 1);
+            activateTab(lastTab);
+        }
+    }
+
+    /**
+     * Returns the active page title.
+     * <p>
+     *
+     * @return The page title.
+     */
+    public String pageTitle() {
+        return this.driver.getTitle();
+    }
+
+    /**
+     * Returns the active page source.
+     * <p>
+     *
+     * @return {@link org.jsoup.nodes.Document} object for the page source.
+     */
+    public Document pageSource() {
+        return Jsoup.parse(this.driver.getPageSource());
+    }
+
+    /**
+     * Execute the given javascript code.
+     * <p>
+     *
+     * @param code The code to be executed.
+     * @param args The arguments to be passed to the code.
+     * @return Returns the code output.
+     */
+    public Object executeJavascript(String code, Object... args) {
+        return ((JavascriptExecutor) driver).executeScript(code, args);
+    }
+
+    /**
+     * Switch the WebBot driver to the specified iframe.
+     * <p>
+     *
+     * @param element The iframe element.
+     */
+    public void enterIframe(WebElement element) {
+        this.driver.switchTo().frame(element);
+    }
+
+    /**
+     * Leave the iframe and switch the WebBot driver to the default content.
+     */
+    public void leaveIframe() {
+        this.driver.switchTo().defaultContent();
+    }
+
+    /**
+     * Get the total number of files of the same type.
+     * <p>
+     *
+     * @param path          The path of the folder where the files are saved.
+     * @param fileExtension The extension of the files to be searched for (e.g., .pdf, .txt).
+     * @return The number of files of the given type.
+     */
+    public int getFileCount(String path, String fileExtension) {
+        File filePath = new File(path);
+
+        if (!filePath.exists()) throw new RuntimeException("The path does not exist");
+
+        if (!filePath.isDirectory()) throw new RuntimeException("The path must be a directory");
+
+        File[] files = filePath.listFiles();
+        if (files == null) {
+            return 0;
+        }
+
+        int count = 0;
+        for (File file : files) {
+            if (file.getName().endsWith(fileExtension)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Pressing the browser’s back button.
+     */
+    public void back() {
+        this.driver.navigate().back();
+    }
+
+    /**
+     * Pressing the browser’s forward button.
+     */
+    public void forward() {
+        this.driver.navigate().forward();
+    }
+
+    /**
+     * Refresh the current page.
+     */
+    public void refresh() {
+        this.driver.navigate().refresh();
+    }
+
+    /**
+     * Find an element using the specified selector with selector type specified by `by`.
+     * If more than one element is found, the first instance is returned.
+     * <p>
+     *
+     * @param by               The selector type with the selector string.
+     * @param ensure_visible   True to wait for the element to be visible.
+     * @param ensure_clickable True to wait for the element to be clickable.
+     * @param waiting_time     Maximum wait time (ms) to search for a hit.
+     * @return The {@link org.openqa.selenium.WebElement} found.
+     */
+    public WebElement findElement(By by, boolean ensure_visible, boolean ensure_clickable, long waiting_time) {
+        ExpectedCondition<WebElement> condition;
+
+        if (ensure_visible) {
+            condition = ExpectedConditions.visibilityOfElementLocated(by);
+        } else {
+            condition = ExpectedConditions.presenceOfElementLocated(by);
+        }
+
+        if (ensure_clickable) {
+            condition = ExpectedConditions.elementToBeClickable(by);
+        }
+
+        try {
+            return new WebDriverWait(this.driver, waiting_time / 1000).until(condition);
+        } catch (TimeoutException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Find an element using the specified selector with selector type specified by `by`.
+     * If more than one element is found, the first instance is returned.
+     * <p>
+     *
+     * @param by The selector type with the selector string.
+     * @return The {@link org.openqa.selenium.WebElement} found.
+     */
+    public WebElement findElement(By by) {
+        return findElement(by, true, false, this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Find elements using the specified selector with selector type specified by `by`.
+     * <p>
+     *
+     * @param by             The selector type with the selector string.
+     * @param ensure_visible True to wait for the element to be visible.
+     * @param waiting_time   Maximum wait time (ms) to search for a hit.
+     * @return The list of {@link org.openqa.selenium.WebElement} found.
+     */
+    public List<WebElement> findElements(By by, boolean ensure_visible, long waiting_time) {
+        ExpectedCondition<List<WebElement>> condition;
+        if (ensure_visible) {
+            condition = ExpectedConditions.visibilityOfAllElementsLocatedBy(by);
+        } else {
+            condition = ExpectedConditions.presenceOfAllElementsLocatedBy(by);
+        }
+
+        try {
+            return new WebDriverWait(this.driver, waiting_time / 1000).until(condition);
+        } catch (TimeoutException e) {
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Find elements using the specified selector with selector type specified by `by`.
+     * <p>
+     *
+     * @param by The selector type with the selector string.
+     * @return The list of {@link org.openqa.selenium.WebElement} found.
+     */
+    public List<WebElement> findElements(By by) {
+        return findElements(by, true, this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Return the last found dialog. Invoke first the `find_js_dialog` method to look up.
+     * <p>
+     *
+     * @return A handle to the dialog.
+     */
+    public Alert getJsDialog() {
+        return this.driver.switchTo().alert();
+    }
+
+    /**
+     * Accepts or dismisses a JavaScript initiated dialog (alert, confirm, prompt, or onbeforeunload).
+     * This also cleans the dialog information in the local buffer.
+     * <p>
+     *
+     * @param accept     Whether to accept or dismiss the dialog.
+     * @param promptText The text to enter into the dialog prompt before accepting. Used only if this is a prompt dialog.
+     * @return True if the dialog was handled successfully.
+     */
+    public boolean handleJsDialog(boolean accept, String promptText) {
+        Alert alert = getJsDialog();
+
+        if (alert == null) return false;
+
+        if (promptText != null && !promptText.isEmpty()) {
+            alert.sendKeys(promptText);
+        }
+
+        if (accept) {
+            alert.accept();
+        } else {
+            alert.dismiss();
+        }
+        return true;
+    }
+
+    /**
+     * Accepts or dismisses a JavaScript initiated dialog (alert, confirm, prompt, or onbeforeunload).
+     * <p>
+     *
+     * @param accept Whether to accept or dismiss the dialog.
+     * @return True if the dialog was handled successfully.
+     */
+    public boolean handleJsDialog(boolean accept) {
+        return handleJsDialog(accept, null);
+    }
+
+    /**
+     * Wait for all downloads to be finished.
+     * Beware that this method replaces the current page with the downloads window.
+     * <p>
+     *
+     * @param timeout Timeout in millis.
+     * @return True if the downloads window was found and all downloads finished. False if the timeout was reached.
+     */
+    public boolean waitForDownloads(int timeout) {
+        if ((this.browser.equals(Browser.CHROME) || this.browser.equals(Browser.EDGE)) && this.headless) {
+            long startTime = System.currentTimeMillis();
+            while (true) {
+                if ((System.currentTimeMillis() - startTime) > timeout) {
+                    return false;
+                }
+
+                int downloadsCount = getFileCount(this.downloadPath, ".crdownload");
+                if (downloadsCount == 0) return true;
+                sleep(this.DEFAULT_SLEEP_AFTER_ACTION);
+            }
+        }
+
+        try {
+            new WebDriverWait(this.driver, timeout / 1000, 1).until(this.config::waitForDownloads);
+            return true;
+        } catch (TimeoutException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Wait for a file to be available on disk.
+     * <p>
+     *
+     * @param path    The path for the file to be executed.
+     * @param timeout Maximum wait time (ms) to search for a hit.
+     * @return True if the file was found. False if the timeout was reached.
+     */
+    @SneakyThrows
+    public boolean waitForFile(String path, long timeout) {
+        File file = new File(path);
+
+        long startTime = System.currentTimeMillis();
+        while (true) {
+            if ((System.currentTimeMillis() - startTime) > timeout) {
+                return false;
+            }
+
+            if (file.isFile() && file.canRead() && Files.size(file.toPath()) > 0) {
+                return true;
+            }
+
+            this.sleep(this.DEFAULT_SLEEP_AFTER_ACTION);
+        }
+    }
+
+    /**
+     * Returns the last created file in a specific folder path.
+     * <p>
+     *
+     * @param path          The path of the folder where the file is expected.
+     * @param fileExtension The extension of the file to be searched for (e.g., .pdf, .txt).
+     * @return The path of the last created file.
+     */
+    @SneakyThrows
+    private Path getLastCreatedFile(String path, String fileExtension) {
+        if (path.isEmpty()) {
+            path = this.downloadPath;
+        }
+
+        Path dir = Paths.get(path);
+        return Files.list(dir)
+                .filter(f -> !Files.isDirectory(f) && f.toString().endsWith(fileExtension))
+                .max(Comparator.comparingLong(f -> f.toFile().lastModified()))
+                .orElse(null);
+    }
+
+    /**
+     * Wait for a new file to be available on disk without the file path.
+     * <p>
+     *
+     * @param path          The path of the folder where the file is expected.
+     * @param fileExtension The extension of the file to be searched for (e.g., .pdf, .txt).
+     * @param currentCount  The current number of files in the folder of the given type.
+     * @param timeout       Maximum wait time (ms) to search for a hit.
+     * @return The path of the last created file of the given type.
+     */
+    @SneakyThrows
+    public String waitForNewFile(String path, String fileExtension, int currentCount, long timeout) {
+        if (path.isEmpty()) {
+            path = this.downloadPath;
+        }
+
+        if (currentCount == 0) {
+            currentCount = getFileCount(path, fileExtension);
+        }
+
+        long startTime = System.currentTimeMillis();
+        while (true) {
+            if ((System.currentTimeMillis() - startTime) > timeout) {
+                return "";
+            }
+
+            int fileCount = getFileCount(path, fileExtension);
+            if (fileCount == currentCount + 1) {
+                Path lastFile = getLastCreatedFile(path, fileExtension);
+                if (lastFile != null && Files.size(lastFile) > 0) {
+                    return lastFile.toString();
+                }
+            }
+
+            sleep(this.DEFAULT_SLEEP_AFTER_ACTION);
+        }
+    }
+
+    /**
+     * Context manager to wait for a new page to load and activate it.
+     * <p>
+     *
+     * @param activate    Whether or not to activate the new page.
+     * @param waitingTime The maximum waiting time. Defaults to 10000.
+     * @param function    The lambda function to be executed.
+     */
+    public void waitForNewPage(boolean activate, long waitingTime, Runnable function) {
+        int tabsCount = getTabs().size();
+        function.run();
+
+        long startTime = System.currentTimeMillis();
+        while (getTabs().size() == tabsCount) {
+            if ((System.currentTimeMillis() - startTime) > waitingTime) {
+                return;
+            }
+            sleep(this.DEFAULT_SLEEP_AFTER_ACTION);
+        }
+
+        List<String> tabs = getTabs();
+        if (activate) {
+            activateTab(tabs.get(tabs.size() - 1));
+        }
+    }
+
+    /**
+     * Context manager to wait for a new page to load and activate it.
+     * <p>
+     *
+     * @param activate Whether or not to activate the new page.
+     * @param function The lambda function to be executed.
+     */
+    public void waitForNewPage(boolean activate, Runnable function) {
+        waitForNewPage(activate, 10000, function);
+    }
+
+    /**
+     * Context manager to wait for a new page to load and activate it.
+     * <p>
+     *
+     * @param function The lambda function to be executed.
+     */
+    public void waitForNewPage(Runnable function) {
+        waitForNewPage(true, function);
+    }
+
+    /**
+     * Wait for the element to be visible or hidden.
+     * <p>
+     *
+     * @param element     The element to wait for.
+     * @param visible     Whether to wait for the element to be visible.
+     * @param waitingTime Maximum wait time (ms) to search for a hit.
+     * @return True if the element is visible. False if the timeout was reached.
+     */
+    public boolean waitForElementVisibilitiy(WebElement element, boolean visible, long waitingTime) {
+        try {
+            WebDriverWait webDriverWait = new WebDriverWait(this.driver, waitingTime / 1000);
+            if (visible) {
+                webDriverWait.until(ExpectedConditions.visibilityOf(element));
+            } else {
+                webDriverWait.until(ExpectedConditions.invisibilityOf(element));
+            }
+
+            return true;
+        } catch (TimeoutException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Wait for the element to be visible or hidden.
+     * <p>
+     *
+     * @param element     The element to wait for.
+     * @param waitingTime Maximum wait time (ms) to search for a hit.
+     * @return True if the element is visible. False if the timeout was reached.
+     */
+    public boolean waitForElementVisibilitiy(WebElement element, long waitingTime) {
+        return waitForElementVisibilitiy(element, true, waitingTime);
+    }
+
+    /**
+     * Wait until the WebElement element becomes stale (outdated).
+     * <p>
+     *
+     * @param element     The element to monitor for staleness.
+     * @param waitingTime Timeout in millis.
+     * @return True if the element is stale. False if the timeout was reached.
+     */
+    public boolean waitForStaleElement(WebElement element, long waitingTime) {
+        try {
+            new WebDriverWait(this.driver, waitingTime / 1000)
+                    .until(ExpectedConditions.stalenessOf(element));
+            return true;
+        } catch (TimeoutException | NoSuchElementException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Execute a webdriver command.
+     * <p>
+     *
+     * @param command The command URL after the session part.
+     * @param params  The payload to be serialized and sent to the webdriver.
+     * @param reqType The type of request to be made.
+     * @return The value of the response.
+     */
+    @SneakyThrows
+    private HttpResponse webdriverCommand(String command, Map<String, Object> params, HttpMethod reqType) {
+        HttpCommandExecutor executor = this.config.executor(this.driver);
+
+        URL urlAddress = executor.getAddressOfRemoteServer();
+
+        SessionId sessionId = this.config.getSessionId();
+        String path = String.format("/session/%s/%s", sessionId.toString(), command);
+
+        HttpClient httpClient = HttpClient.Factory.createDefault().createClient(urlAddress);
+
+        HttpRequest request = new HttpRequest(reqType, path);
+
+        if (params == null || params.isEmpty()) {
+            request.setContent("{}".getBytes());
+        } else {
+            request.setContent(new Gson().toJson(params).getBytes());
+        }
+
+        return httpClient.execute(request);
+
+    }
+
+    /**
+     * Print the current page as a PDF file.
+     * <p>
+     *
+     * @param path         The path for the file to be saved.
+     * @param printOptions Print options as defined at.
+     * @return The saved file path.
+     */
+    @SneakyThrows
+    public String printPdf(String path, Map<String, Object> printOptions) {
+        String pgTitle = pageTitle().isEmpty() ? "document" : pageTitle();
+        int timeout = 60_000;
+        String defaultPath = Paths.get(this.downloadPath, pgTitle + ".pdf").toString();
+
+        if ((this.browser.equals(Browser.CHROME) || this.browser.equals(Browser.EDGE)) && !this.headless) {
+            int pdfCurrentCount = getFileCount(this.downloadPath, ".pdf");
+            // Chrome still does not support headless webdriver print
+            // but Firefox does.
+            executeJavascript("window.print();");
+
+            // We need to wait for the file to be available in this case.
+            if (!pageTitle().isEmpty()) {
+                waitForFile(defaultPath, timeout);
+            } else {
+                // Waiting when the file don 't have the page title in path
+                waitForNewFile(this.downloadPath, ".pdf", pdfCurrentCount, timeout);
+            }
+
+            // Move the downloaded pdf file if the path is not empty
+            if (!path.isEmpty()) {
+                Path lastDownloadedPdf = getLastCreatedFile(this.downloadPath, ".pdf");
+                Files.move(lastDownloadedPdf, Paths.get(path), StandardCopyOption.REPLACE_EXISTING);
+                return path;
+            }
+            wait(2000);
+            return defaultPath;
+        }
+
+        if (printOptions == null || printOptions.isEmpty()) {
+            printOptions = new HashMap<>();
+            printOptions.put("landscape", false);
+            printOptions.put("displayHeaderFooter", false);
+            printOptions.put("printBackground", true);
+            printOptions.put("preferCSSPageSize", true);
+            printOptions.put("marginTop", 0);
+            printOptions.put("marginBottom", 0);
+        }
+
+        if (path.isEmpty()) {
+            path = defaultPath;
+        }
+
+        WebDriverResponse jsonResponse = new Gson().fromJson(webdriverCommand("print", printOptions, HttpMethod.POST).getContentReader(), WebDriverResponse.class);
+        byte[] bytes = Base64.getDecoder().decode(jsonResponse.getValue());
+        try (FileOutputStream fos = new FileOutputStream(path)) {
+            fos.write(bytes);
+        }
+
+        return path;
+    }
+
+    /**
+     * Print the current page as a PDF file.
+     * <p>
+     *
+     * @param path The path for the file to be saved.
+     * @return The saved file path.
+     */
+    public String printPdf(String path) {
+        return printPdf(path, null);
+    }
+
+    /**
+     * Print the current page as a PDF file.
+     * <p>
+     *
+     * @return The saved file path.
+     */
+    public String printPdf() {
+        return printPdf("");
+    }
+
+    /**
+     * Install an extension in the Firefox browser.
+     * This will start the browser if it was not started yet.
+     * <p>
+     *
+     * @param extensionPath The path of the .xpi extension to be loaded.
+     */
+    public void installFirefoxExtension(String extensionPath) {
+        if (!this.browser.equals(Browser.FIREFOX)) {
+            throw new IllegalStateException("This methods is only available for Firefox");
+        }
+
+        if (this.driver == null) {
+            startBrowser();
+        }
+
+        ((FirefoxDriver) driver).installExtension(Paths.get(extensionPath));
+    }
+
+    /**
+     * Configure the filepath for upload in a file element.
+     * <b>Note:</b> This method does not submit the form.
+     * <p>
+     *
+     * @param element  The file upload element.
+     * @param filePath The path to the file to be uploaded.
+     */
+    public void setFileInputElement(WebElement element, File filePath) {
+        element.sendKeys(filePath.getAbsolutePath());
+    }
+
+    /**
+     * Press Page Down key.
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void pageDown(int wait) {
+        Actions action = new Actions(this.driver);
+        action.sendKeys(Keys.DOWN);
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Press Page Down key
+     */
+    public void pageDown() {
+        pageDown(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Press Page Up key.
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void pageUp(int wait) {
+        Actions action = new Actions(this.driver);
+        action.sendKeys(Keys.UP);
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Press Page Up key
+     */
+    public void pageUp() {
+        pageUp(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    public void enter(int wait) {
+        Actions action = new Actions(this.driver);
+        action.sendKeys(Keys.ENTER);
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Press key Enter.
+     */
+    public void enter() {
+        enter(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Type a text char by char (individual key events).
+     * <p>
+     *
+     * @param text     Text to be typed.
+     * @param interval Interval (ms) between each key press.
+     */
+    public void type(String text, int interval) {
+        Actions action = new Actions(this.driver);
+        for (String ch : text.split("")) {
+            action.sendKeys(ch);
+            action.pause(interval / 1000);
+        }
+        action.perform();
+        wait(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Type a text char by char (individual key events).
+     * <p>
+     *
+     * @param text Text to be typed.
+     */
+    public void type(String text) {
+        type(text, 0);
+    }
+
+    /**
+     * Type a text char by char (individual key events).
+     * <p>
+     *
+     * @param text Text to be typed.
+     */
+    public void kbType(String text) {
+        type(text);
+    }
+
+    /**
+     * Paste content from the clipboard.
+     */
+    public void paste() {
+        type(this.clipboard);
+    }
+
+    /**
+     * Press keys CTRL+C.
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void controlC(int wait) {
+        String cmd = "try {return document.activeElement.value.substring(document.activeElement.selectionStart,document.activeElement.selectionEnd);} catch(error) {return window.getSelection().toString();}";
+        this.clipboard = (String) this.executeJavascript(cmd);
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Press keys CTRL+C.
+     */
+    public void controlC() {
+        controlC(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Press keys CTRL+A.
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void controlA(int wait) {
+        Actions action = new Actions(this.driver);
+        Keys key = Keys.CONTROL;
+
+        if (System.getProperty("os.name").toLowerCase().contains("mac")) {
+            key = Keys.COMMAND;
+        }
+
+        action.keyDown(key);
+        action.sendKeys("a");
+        action.keyUp(key);
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Press keys CTRL+A.
+     */
+    public void controlA() {
+        controlA(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Press keys CTRL+X.
+     */
+    public void controlV() {
+        paste();
+    }
+
+    /**
+     * Press key Esc.
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void keyEsc(int wait) {
+        Actions action = new Actions(this.driver);
+        action.sendKeys(Keys.ESCAPE);
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Press key Esc.
+     */
+    public void keyEsc() {
+        keyEsc(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Press key Enter.
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void keyEnter(int wait) {
+        enter(wait);
+    }
+
+    /**
+     * Press key Enter.
+     */
+    public void keyEnter() {
+        keyEnter(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Press key Home.
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void keyHome(int wait) {
+        Actions action = new Actions(this.driver);
+        action.sendKeys(Keys.HOME);
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Press key Home.
+     */
+    public void keyHome() {
+        keyHome(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Press key End.
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void keyEnd(int wait) {
+        Actions action = new Actions(this.driver);
+        action.sendKeys(Keys.END);
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Press key End.
+     */
+    public void keyEnd() {
+        keyEnd(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Press key Delete.
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void delete(int wait) {
+        Actions action = new Actions(this.driver);
+        action.sendKeys(Keys.DELETE);
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Press key Delete.
+     */
+    public void delete() {
+        delete(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Press key Space.
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void space(int wait) {
+        Actions action = new Actions(this.driver);
+        action.sendKeys(Keys.SPACE);
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Press key Space.
+     */
+    public void space() {
+        space(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Press key Tab.
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void tab(int wait) {
+        Actions action = new Actions(this.driver);
+        action.sendKeys(Keys.TAB);
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Press key Tab.
+     */
+    public void tab() {
+        tab(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Press a sequence of keys. Hold the keys in the specific order and releases them.
+     * <p>
+     *
+     * @param interval Interval (ms) in which to press and release keys.
+     * @param keys     List of Keys to be pressed.
+     */
+    private void typeKeysWithInterval(int interval, CharSequence... keys) {
+        Actions action = new Actions(driver);
+
+        for (CharSequence key : keys) {
+            if (key instanceof String) {
+                action.sendKeys(key);
+            } else {
+                action.keyDown(key);
+            }
+            action.pause(interval / 1000);
+        }
+
+        for (CharSequence key : keys) {
+            if (key instanceof String) {
+                continue;
+            }
+            action.keyUp(key);
+            action.pause(interval / 1000);
+        }
+
+        action.perform();
+    }
+
+    /**
+     * Press a sequence of keys. Hold the keys in the specific order and releases them.
+     * <p>
+     *
+     * @param keys List of Keys to be pressed.
+     */
+    public void typeKeys(CharSequence... keys) {
+        typeKeysWithInterval(100, keys);
+    }
+
+    /**
+     * Press Left key.
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void typeLeft(int wait) {
+        Actions action = new Actions(this.driver);
+        action.sendKeys(Keys.LEFT);
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Press Left key.
+     */
+    public void typeLeft() {
+        typeLeft(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Press Right key.
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void typeRight(int wait) {
+        Actions action = new Actions(this.driver);
+        action.sendKeys(Keys.RIGHT);
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Press Right key.
+     */
+    public void typeRight() {
+        typeRight(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Press Down key
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void typeDown(int wait) {
+        Actions action = new Actions(this.driver);
+        action.sendKeys(Keys.DOWN);
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Press Down key
+     */
+    public void typeDown() {
+        typeDown(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Press Up key
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void typeUp(int wait) {
+        Actions action = new Actions(this.driver);
+        action.sendKeys(Keys.UP);
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Press Up key
+     */
+    public void typeUp() {
+        typeUp(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Press key Right.
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void keyRight(int wait) {
+        Actions action = new Actions(this.driver);
+        action.sendKeys(Keys.RIGHT);
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Press Backspace key.
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void backspace(int wait) {
+        Actions action = new Actions(this.driver);
+        action.sendKeys(Keys.BACK_SPACE);
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Press Backspace key.
+     */
+    public void backspace() {
+        backspace(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Hold key Shift.
+     * <p>
+     *
+     * @param wait Wait interval (ms) after task.
+     */
+    public void holdShift(int wait) {
+        Actions action = new Actions(this.driver);
+        action.keyDown(Keys.SHIFT);
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Hold key Shift.
+     */
+    public void holdShift() {
+        holdShift(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Release key Shift.
+     * This method needs to be invoked after holding Shift or similar.
+     */
+    public void releaseShift() {
+        Actions action = new Actions(this.driver);
+        action.keyUp(Keys.SHIFT);
+        action.perform();
+    }
+
+    /**
+     * Copy content to the clipboard.
+     * <p>
+     *
+     * @param text The text to be copied.
+     */
+    public void copyToClipboard(String text) {
+        this.clipboard = text;
+    }
+
+    /**
+     * Get the current content in the clipboard.
+     * <p>
+     *
+     * @return Current clipboard content.
+     */
+    public String getClipboard() {
+        return this.clipboard;
+    }
+
+    /**
+     * Wait / Sleep for a given interval.
+     *
+     * @param ms The interval (ms) to wait.
+     */
+    @SneakyThrows
+    public void wait(int ms) {
+        Thread.sleep(ms);
+    }
+
+    /**
+     * Wait / Sleep for a given interval.
+     *
+     * @param ms The interval (ms) to wait.
+     */
+    public void sleep(int ms) {
+        wait(ms);
+    }
+
+    /**
+     * Add an image into the state image map.
+     * <p>
+     *
+     * @param label The image identifier.
+     * @param path  The path for the image on disk.
+     */
+    public void addImage(String label, String path) {
+        this.images.put(label, path);
+    }
+
+    /**
+     * Return an image from teh state image map.
+     * <p>
+     *
+     * @param label The image identifier.
+     * @return The {@link MarvinImage} object.
+     */
+    private MarvinImage getImageFromMap(String label) {
+        String imagePath = images.getOrDefault(label, label + ".png");
+        return Resource.getResourceAsMarvinImage(this.getClass(), imagePath);
+    }
+
+    /**
+     * Changes the current screen element the bot will interact when using click(), move(), and similar methods.
+     * <p>
+     *
+     * @param state A screen element coordinates (left, top, width, height).
+     */
+    public void setCurrentElement(State state) {
+        this.element = state;
+    }
+
+    /**
+     * Return the last element found.
+     * <p>
+     *
+     * @return The element coordinates (left, top, width, height)
+     */
+    public State getLastElement() {
+        return this.element;
+    }
+
+    /**
+     * Return the x position of the last element found.
+     * <p>
+     *
+     * @return The x position.
+     */
+    public int getLastX() {
+        return this.x;
+    }
+
+    /**
+     * Return the y position of the last element found.
+     * <p>
+     *
+     * @return The y position.
+     */
+    public int getLastY() {
+        return this.y;
+    }
+
+    private State findSubimage(MarvinImage visualImage, MarvinImage screenImage, Region region, double matching, boolean findBest) {
+        List<State> elements = cvFind.findAllElements(visualImage, screenImage, region, matching, true);
+        if (findBest)
+            return cvFind.findBestElement(elements);
+
+        if (elements.isEmpty())
+            return new State();
+
+        return elements.get(0);
+    }
+
+    /**
+     * Find an element defined by label on screen and returns its coordinates.
+     * <p>
+     *
+     * @param visualImage The image to be found.
+     * @param screenImage The screen image to search.
+     * @param region      The region to search.
+     * @param matching    Minimum score to consider a match in the element image recognition process.
+     * @param best        Whether or not to search for the best value. If False the method returns on the first find.
+     * @return A {@link State} instance with the x and y coordinates for the element.
+     */
+    private State getElementCoords(MarvinImage visualImage, MarvinImage screenImage, Region region, double matching, boolean best) {
+        return findSubimage(visualImage, screenImage, region, matching, best);
+    }
+
+    /**
+     * Find an element defined by label on screen and returns its coordinates.
+     * <p>
+     *
+     * @param label    The image identifier.
+     * @param region   The region to search.
+     * @param matching Minimum score to consider a match in the element image recognition process.
+     * @return A {@link State} instance with the x and y coordinates for the element.
+     */
+    public State getElementCoords(String label, Region region, double matching) {
+        return getElementCoords(getImageFromMap(label), getScreenImage(), region, matching, false);
+    }
+
+    /**
+     * Find an element defined by label on screen and returns its coordinates.
+     * <p>
+     *
+     * @param label    The image identifier.
+     * @param matching Minimum score to consider a match in the element image recognition process.
+     * @return A {@link State} instance with the x and y coordinates for the element.
+     */
+    public State getElementCoords(String label, double matching) {
+        return getElementCoords(getImageFromMap(label), getScreenImage(), null, matching, false);
+    }
+
+    /**
+     * Find an element defined by label on screen and returns its centered coordinates.
+     * <p>
+     *
+     * @param label    The image identifier.
+     * @param matching Minimum score to consider a match in the element image recognition process.
+     * @return Point with coordinates of the center of the element.
+     */
+    public java.awt.Point getElementCoordsCentered(String label, double matching) {
+        State element = getElementCoords(getImageFromMap(label), getScreenImage(), null, matching, false);
+        if (element.isAvailable()) {
+            return element.getCenteredPosition();
+        }
+        return null;
+    }
+
+    /**
+     * Find an element defined by label on screen until a timeout happens.
+     * <p>
+     *
+     * @param visualElem  The image to be found.
+     * @param region      The region to search.
+     * @param threshold   The threshold to be applied when doing grayscale search.
+     * @param grayscale   Whether or not to convert to grayscale before searching.
+     * @param matching    The matching index ranging from 0 to 1.
+     * @param waitingTime Maximum wait time (ms) to search for a hit.
+     * @param best        Whether or not to keep looking until the best matching is found.
+     * @return True if element was found, false otherwise.
+     */
+    public boolean findUntil(MarvinImage visualElem, Region region, int threshold, boolean grayscale, double matching, long waitingTime, boolean best) {
+        long startTime = System.currentTimeMillis();
+
+        while (true) {
+            if (System.currentTimeMillis() - startTime > waitingTime) {
+                return false;
+            }
+
+            MarvinImage screen = getScreenImage();
+            int searchWindowWidth = (region.getWidth() != 0 ? region.getWidth() : screen.getWidth());
+            int searchWindowHeight = (region.getHeight() != 0 ? region.getHeight() : screen.getHeight());
+
+            MarvinImage screenCopy = screen.clone();
+            MarvinImage visualElemCopy = visualElem.clone();
+
+            if (threshold > 0) {
+                screenCopy = cvFind.threshold(screenCopy, threshold);
+                visualElemCopy = cvFind.threshold(visualElemCopy, threshold);
+            }
+
+            if (grayscale) {
+                screenCopy = cvFind.grayscale(screenCopy);
+                visualElemCopy = cvFind.grayscale(visualElemCopy);
+            }
+
+            State element = getElementCoords(visualElemCopy, screenCopy, new Region(region.getX(), region.getY(), searchWindowWidth, searchWindowHeight), matching, best);
+            if (element.isAvailable()) {
+                this.element = element;
+                return true;
+            }
+        }
+    }
+
+    /**
+     * Find an element defined by label on screen until a timeout happens.
+     * <p>
+     *
+     * @param label       The image identifier.
+     * @param region      The region to search.
+     * @param threshold   The threshold to be applied when doing grayscale search.
+     * @param grayscale   Whether or not to convert to grayscale before searching.
+     * @param matching    The matching index ranging from 0 to 1.
+     * @param waitingTime Maximum wait time (ms) to search for a hit.
+     * @param best        Whether or not to keep looking until the best matching is found.
+     * @return True if element was found, false otherwise.
+     */
+    public boolean findUntil(String label, Region region, int threshold, boolean grayscale, double matching, long waitingTime, boolean best) {
+        return findUntil(getImageFromMap(label), region, threshold, grayscale, matching, waitingTime, best);
+    }
+
+    /**
+     * Find an element defined by label on screen until a timeout happens.
+     * <p>
+     *
+     * @param label       The image identifier.
+     * @param threshold   The threshold to be applied when doing grayscale search.
+     * @param grayscale   Whether or not to convert to grayscale before searching.
+     * @param matching    The matching index ranging from 0 to 1.
+     * @param waitingTime Maximum wait time (ms) to search for a hit.
+     * @return True if element was found, false otherwise.
+     */
+    public boolean findUntil(String label, int threshold, boolean grayscale, double matching, long waitingTime) {
+        return findUntil(getImageFromMap(label), new Region(), threshold, grayscale, matching, waitingTime, false);
+    }
+
+    /**
+     * Find an element defined by label on screen until a timeout happens.
+     * <p>
+     *
+     * @param visualImage The image to be found.
+     * @param threshold   The threshold to be applied when doing grayscale search.
+     * @param grayscale   Whether or not to convert to grayscale before searching.
+     * @param matching    The matching index ranging from 0 to 1.
+     * @return True if element was found, false otherwise.
+     */
+    public boolean findUntil(MarvinImage visualImage, int threshold, boolean grayscale, double matching) {
+        return findUntil(visualImage, new Region(), threshold, grayscale, matching, this.DEFAULT_SLEEP_AFTER_ACTION, false);
+    }
+
+    /**
+     * Find an element defined by label on screen until a timeout happens.
+     * <p>
+     *
+     * @param label       The image identifier.
+     * @param threshold   The threshold to be applied when doing grayscale search.
+     * @param matching    The matching index ranging from 0 to 1.
+     * @param waitingTime Maximum wait time (ms) to search for a hit.
+     * @return True if element was found, false otherwise.
+     */
+    public boolean findText(String label, int threshold, double matching, long waitingTime) {
+        return findUntil(label, threshold, true, matching, waitingTime);
+    }
+
+    /**
+     * Find an element defined by label on screen until a timeout happens.
+     * <p>
+     *
+     * @param label       The image identifier.
+     * @param matching    The matching index ranging from 0 to 1.
+     * @param waitingTime Maximum wait time (ms) to search for a hit.
+     * @return True if element was found, false otherwise.
+     */
+    public boolean findText(String label, double matching, long waitingTime) {
+        return findUntil(label, 0, true, matching, waitingTime);
+    }
+
+    /**
+     * Find an element defined by label on screen until a timeout happens.
+     * <p>
+     *
+     * @param label       The image identifier.
+     * @param matching    The matching index ranging from 0 to 1.
+     * @param threshold   The threshold to be applied when doing grayscale search.
+     * @param grayscale   Whether or not to convert to grayscale before searching.
+     * @param waitingTime Maximum wait time (ms) to search for a hit.
+     * @return True if element was found, false otherwise.
+     */
+    public boolean find(String label, double matching, int threshold, boolean grayscale, long waitingTime) {
+        return findUntil(label, threshold, grayscale, matching, waitingTime);
+    }
+
+    /**
+     * Find an element defined by label on screen until a timeout happens.
+     * <p>
+     *
+     * @param label       The image identifier.
+     * @param matching    The matching index ranging from 0 to 1.
+     * @param grayscale   Whether or not to convert to grayscale before searching.
+     * @param waitingTime Maximum wait time (ms) to search for a hit.
+     * @return True if element was found, false otherwise.
+     */
+    public boolean find(String label, double matching, boolean grayscale, long waitingTime) {
+        return findUntil(label, 0, grayscale, matching, waitingTime);
+    }
+
+    /**
+     * Find an element defined by label on screen until a timeout happens.
+     * <p>
+     *
+     * @param label       The image identifier.
+     * @param matching    The matching index ranging from 0 to 1.
+     * @param waitingTime Maximum wait time (ms) to search for a hit.
+     * @return True if element was found, false otherwise.
+     */
+    public boolean find(String label, double matching, long waitingTime) {
+        return findUntil(label, 0, false, matching, waitingTime);
+    }
+
+    /**
+     * Find all elements defined by label on screen until a timeout happens.
+     * <p>
+     *
+     * @param visualElem  The {@link MarvinImage} to find.
+     * @param region      The region to search for the elements.
+     * @param threshold   The threshold to be applied when doing grayscale search.
+     * @param grayscale   Whether or not to convert to grayscale before searching.
+     * @param matching    The matching index ranging from 0 to 1.
+     * @param waitingTime Maximum wait time (ms) to search for a hit.
+     * @param best        Whether or not to keep looking until the best matching is found.
+     * @return A list with all element coordinates found.
+     */
+    public List<State> findAll(MarvinImage visualElem, Region region, int threshold, boolean grayscale, double matching, long waitingTime, boolean best) {
+        long startTime = System.currentTimeMillis();
+        List<State> elements = new ArrayList<>();
+
+        while (true) {
+            if (System.currentTimeMillis() - startTime > waitingTime) {
+                return elements;
+            }
+
+            MarvinImage screen = getScreenImage();
+            int width = (region.getWidth() != 0 ? region.getWidth() : screen.getWidth());
+            int height = (region.getHeight() != 0 ? region.getHeight() : screen.getHeight());
+
+            MarvinImage screenCopy = screen.clone();
+            MarvinImage visualElemCopy = visualElem.clone();
+
+            if (threshold > 0) {
+                screenCopy = cvFind.threshold(screenCopy, threshold);
+                visualElemCopy = cvFind.threshold(visualElemCopy, threshold);
+            }
+
+            if (grayscale) {
+                screenCopy = cvFind.grayscale(screenCopy);
+                visualElemCopy = cvFind.grayscale(visualElemCopy);
+            }
+
+            elements = cvFind.findAllElements(visualElemCopy, screenCopy, new Region(region.getX(), region.getY(), width, height), matching, best);
+            if (!elements.isEmpty())
+                return elements;
+        }
+    }
+
+    /**
+     * Find all elements defined by label on screen until a timeout happens.
+     * <p>
+     *
+     * @param label       The image identifier.
+     * @param region      The region to search for the elements.
+     * @param threshold   The threshold to be applied when doing grayscale search.
+     * @param grayscale   Whether or not to convert to grayscale before searching.
+     * @param matching    The matching index ranging from 0 to 1.
+     * @param waitingTime Maximum wait time (ms) to search for a hit.
+     * @param best        Whether or not to keep looking until the best matching is found.
+     * @return A list with all element coordinates found.
+     */
+    public List<State> findAll(String label, Region region, int threshold, boolean grayscale, double matching, long waitingTime, boolean best) {
+        return findAll(getImageFromMap(label), region, threshold, grayscale, matching, waitingTime, best);
+    }
+
+    /**
+     * Find all elements defined by label on screen until a timeout happens.
+     * <p>
+     *
+     * @param label       The image identifier.
+     * @param matching    The matching index ranging from 0 to 1.
+     * @param waitingTime Maximum wait time (ms) to search for a hit.
+     * @return A list with all element coordinates found.
+     */
+    public List<State> findAll(String label, double matching, long waitingTime) {
+        return findAll(label, new Region(), 0, false, matching, waitingTime, false);
+    }
+
+    /**
+     * Find multiple elements defined by label on screen until a timeout happens.
+     * <p>
+     *
+     * @param labels      A list of image identifiers.
+     * @param region      The region to search for the elements.
+     * @param threshold   The threshold to be applied when doing grayscale search.
+     * @param grayscale   Whether or not to convert to grayscale before searching.
+     * @param matching    The matching index ranging from 0 to 1.
+     * @param waitingTime Maximum wait time (ms) to search for a hit.
+     * @param best        Whether or not to keep looking until the best matching is found.
+     * @return A Map in which the key is the label and value are the element coordinates.
+     */
+    public Map<String, State> findMultiple(List<String> labels, Region region, int threshold, boolean grayscale, double matching, long waitingTime, boolean best) {
+        long startTime = System.currentTimeMillis();
+        Map<String, State> elements = new HashMap<>();
+
+        while (true) {
+            for (String label : labels) {
+                if (System.currentTimeMillis() - startTime > waitingTime) {
+                    return elements;
+                }
+
+                MarvinImage screen = getScreenImage();
+                int width = (region.getWidth() != 0 ? region.getWidth() : screen.getWidth());
+                int height = (region.getHeight() != 0 ? region.getHeight() : screen.getHeight());
+
+                MarvinImage screenCopy = screen.clone();
+                MarvinImage visualElemCopy = getImageFromMap(label);
+
+                if (threshold > 0) {
+                    screenCopy = cvFind.threshold(screenCopy, threshold);
+                    visualElemCopy = cvFind.threshold(visualElemCopy, threshold);
+                }
+
+                if (grayscale) {
+                    screenCopy = cvFind.grayscale(screenCopy);
+                    visualElemCopy = cvFind.grayscale(visualElemCopy);
+                }
+
+                State element = getElementCoords(visualElemCopy, screenCopy, new Region(region.getX(), region.getY(), width, height), matching, best);
+                if (element.isAvailable()) {
+                    if (elements.containsKey(label))
+                        continue;
+
+                    elements.put(label, element);
+                }
+
+                if (elements.keySet().size() == labels.size())
+                    return elements;
+            }
+        }
+    }
+
+    /**
+     * Find multiple elements defined by label on screen until a timeout happens.
+     * <p>
+     *
+     * @param labels      A list of image identifiers.
+     * @param matching    The matching index ranging from 0 to 1.
+     * @param waitingTime Maximum wait time (ms) to search for a hit.
+     * @return A Map in which the key is the label and value are the element coordinates.
+     */
+    public Map<String, State> findMultiple(List<String> labels, double matching, long waitingTime) {
+        return findMultiple(labels, new Region(), 0, false, matching, waitingTime, false);
+    }
+
+    /**
+     * Click at the coordinate defined by x and y.
+     * <p>
+     *
+     * @param x                     The X coordinate.
+     * @param y                     The Y coordinate.
+     * @param clicks                Number of times to click.
+     * @param intervalBetweenClicks The interval between clicks in ms.
+     * @param button                One of 'left', 'right'.
+     */
+    public void clickAt(int x, int y, int clicks, int intervalBetweenClicks, String button) {
+        Actions action = new Actions(this.driver);
+        moveTo(x, y, this.DEFAULT_SLEEP_AFTER_ACTION);
+        for (int i = 0; i < clicks; i++) {
+            if (button.equals("left")) {
+                action.click();
+            } else if (button.equals("right")) {
+                action.contextClick();
+            } else {
+                throw new RuntimeException("Invalid value for button. Accepted values are left or right.");
+            }
+            action.pause(intervalBetweenClicks / 1000);
+        }
+
+        action.perform();
+    }
+
+    /**
+     * Click at the coordinate defined by x and y.
+     * <p>
+     *
+     * @param x      The X coordinate.
+     * @param y      The Y coordinate.
+     * @param clicks The number of clicks.
+     */
+    public void clickAt(int x, int y, int clicks) {
+        clickAt(x, y, clicks, this.DEFAULT_SLEEP_AFTER_ACTION, "left");
+    }
+
+    /**
+     * Click at the coordinate defined by x and y.
+     * <p>
+     *
+     * @param x The X coordinate.
+     * @param y The Y coordinate.
+     */
+    public void clickAt(int x, int y) {
+        clickAt(x, y, 1, this.DEFAULT_SLEEP_AFTER_ACTION, "left");
+    }
+
+    /**
+     * Click on the element.
+     * <p>
+     *
+     * @param label    The image identifier
+     * @param matching The matching index ranging from 0 to 1.
+     */
+    public void clickOn(String label, double matching) {
+        State element = getElementCoords(label, matching);
+        if (!element.isAvailable()) {
+            throw new RuntimeException("Element not available. Cannot find " + label);
+        }
+
+        java.awt.Point position = element.getCenteredPosition();
+        clickAt((int) position.getX(), (int) position.getY());
+    }
+
+    /**
+     * Click on the element.
+     * <p>
+     *
+     * @param label The image identifier.
+     */
+    public void clickOn(String label) {
+        clickOn(label, 0.97);
+    }
+
+    /**
+     * Right click at the coordinate defined by x and y.
+     * <p>
+     *
+     * @param x      The X coordinate.
+     * @param y      The Y coordinate.
+     * @param clicks The number of clicks.
+     */
+    public void rightClickAt(int x, int y, int clicks) {
+        clickAt(x, y, clicks, this.DEFAULT_SLEEP_AFTER_ACTION, "right");
+    }
+
+    /**
+     * Right click at the coordinate defined by x and y.
+     * <p>
+     *
+     * @param x The X coordinate.
+     * @param y The Y coordinate.
+     */
+    public void rightClickAt(int x, int y) {
+        clickAt(x, y, 1, this.DEFAULT_SLEEP_AFTER_ACTION, "right");
+    }
+
+    /**
+     * Click on the last found element.
+     * <p>
+     *
+     * @param clicks                Number of times to click.
+     * @param intervalBetweenClicks The interval between clicks in ms.
+     * @param button                One of 'left', 'right'.
+     * @param wait                  Interval to wait after clicking on the element.
+     */
+    public void click(int clicks, int intervalBetweenClicks, String button, int wait) {
+        if (!this.element.isAvailable()) {
+            throw new ElementNotAvailableException("Element not available.");
+        }
+
+        java.awt.Point centeredPostion = this.element.getCenteredPosition();
+        this.clickAt((int) centeredPostion.getX(), (int) centeredPostion.getY(), clicks, intervalBetweenClicks, button);
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Left click on the last found element.
+     * <p>
+     *
+     * @param state The element to be clicked.
+     */
+    public void click(State state) {
+        if (!state.isAvailable()) {
+            throw new ElementNotAvailableException("Element not available.");
+        }
+
+        clickAt(state.getX(), state.getY());
+    }
+
+    /**
+     * Click on the last found element.
+     * <p>
+     *
+     * @param wait Interval to wait after clicking on the element.
+     */
+    public void click(int wait) {
+        click(1, this.DEFAULT_SLEEP_AFTER_ACTION, "left", wait);
+    }
+
+    /**
+     * Click on the last found element.
+     */
+    public void click() {
+        click(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Click Relative on the last found element.
+     * <p>
+     *
+     * @param x Horizontal offset.
+     * @param y Vertical offset.
+     */
+    public void clickRelative(int x, int y) {
+        if (!this.element.isAvailable()) {
+            throw new ElementNotAvailableException("Element not available.");
+        }
+
+        x = this.element.getX() + x;
+        y = this.element.getY() + y;
+        clickAt(x, y, 1, this.DEFAULT_SLEEP_AFTER_ACTION, "left");
+    }
+
+    /**
+     * Double Click Relative on the last found element.
+     * <p>
+     *
+     * @param x Horizontal offset.
+     * @param y Vertical offset.
+     */
+    public void doubleClickRelative(int x, int y) {
+        if (!this.element.isAvailable()) {
+            throw new ElementNotAvailableException("Element not available.");
+        }
+
+        x = this.element.getX() + x;
+        y = this.element.getY() + y;
+        clickAt(x, y, 2, this.DEFAULT_SLEEP_AFTER_ACTION, "left");
+    }
+
+    /**
+     * Double Click on the last found element.
+     * <p>
+     *
+     * @param wait Interval to wait after clicking on the element.
+     */
+    public void doubleClick(int wait) {
+        click(2, this.DEFAULT_SLEEP_AFTER_ACTION, "left", wait);
+    }
+
+    /**
+     * Double Click on the last found element.
+     */
+    public void doubleClick() {
+        doubleClick(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Triple Click on the last found element.
+     * <p>
+     *
+     * @param wait Interval to wait after clicking on the element.
+     */
+    public void tripleClick(int wait) {
+        click(3, this.DEFAULT_SLEEP_AFTER_ACTION, "left", wait);
+    }
+
+    /**
+     * Triple Click on the last found element.
+     */
+    public void tripleClick() {
+        tripleClick(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Triple Click Relative on the last found element.
+     * <p>
+     *
+     * @param x Horizontal offset.
+     * @param y Vertical offset.
+     */
+    public void tripleClickRelative(int x, int y) {
+        if (!this.element.isAvailable()) {
+            throw new ElementNotAvailableException("Element not available.");
+        }
+
+        x = this.element.getX() + x;
+        y = this.element.getY() + y;
+        clickAt(x, y, 3, this.DEFAULT_SLEEP_AFTER_ACTION, "left");
+    }
+
+    /**
+     * Right click on the last found element.
+     * <p>
+     *
+     * @param state The element to be clicked.
+     */
+    public void rightClick(State state) {
+        if (!state.isAvailable()) {
+            throw new ElementNotAvailableException("Element not available.");
+        }
+
+        rightClickAt(state.getX(), state.getY());
+    }
+
+    /**
+     * Right click on the last found element.
+     * <p>
+     *
+     * @param wait Interval to wait after clicking on the element.
+     */
+    public void rightClick(int wait) {
+        click(1, this.DEFAULT_SLEEP_AFTER_ACTION, "right", wait);
+    }
+
+    /**
+     * Right click on the last found element.
+     */
+    public void rightClick() {
+        rightClick(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Right Click Relative on the last found element.
+     * <p>
+     *
+     * @param x Horizontal offset.
+     * @param y Vertical offset.
+     */
+    public void rightClickRelative(int x, int y) {
+        if (!this.element.isAvailable()) {
+            throw new ElementNotAvailableException("Element not available.");
+        }
+
+        x = this.element.getX() + x;
+        y = this.element.getY() + y;
+        rightClickAt(x, y);
+    }
+
+    /**
+     * Move the mouse relative to its current position.
+     * <p>
+     *
+     * @param x    The X coordinate.
+     * @param y    The Y coordinate.
+     * @param wait Interval to wait after moving on the element.
+     */
+    public void moveTo(int x, int y, int wait) {
+        int mx = x - this.x;
+        int my = y - this.y;
+        this.x = x;
+        this.y = y;
+
+        Actions action = new Actions(this.driver);
+        action.moveByOffset(mx, my);
+        action.perform();
+
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Move the mouse relative to its current position.
+     * <p>
+     *
+     * @param x The X coordinate.
+     * @param y The Y coordinate.
+     */
+    public void moveTo(int x, int y) {
+        moveTo(x, y, this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Mouse the move to the coordinate defined by x and y.
+     * <p>
+     *
+     * @param x The X coordinate.
+     * @param y The Y coordinate.
+     */
+    public void mouseMove(int x, int y) {
+        moveTo(x, y);
+    }
+
+    /**
+     * Move the mouse relative to its current position.
+     * <p>
+     *
+     * @param x Horizontal offset.
+     * @param y Vertical offset.
+     */
+    public void moveRelative(int x, int y) {
+        if (!this.element.isAvailable()) {
+            throw new ElementNotAvailableException("Element not available.");
+        }
+
+        x = this.element.getX() + x;
+        y = this.element.getY() + y;
+        moveTo(x, y, this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Move to the center position of last found item.
+     * <p>
+     *
+     * @param wait Interval to wait after moving on the element.
+     */
+    public void move(int wait) {
+        if (!this.element.isAvailable()) {
+            throw new ElementNotAvailableException("Element not available.");
+        }
+
+        this.moveTo(this.element.getX(), this.element.getY(), wait);
+    }
+
+    /**
+     * Move to the center position of last found item.
+     */
+    public void move() {
+        move(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Move randomly along the given x, y range.
+     * <p>
+     *
+     * @param rangeX Horizontal range.
+     * @param rangeY Vertical range.
+     */
+    public void moveRandom(int rangeX, int rangeY) {
+        int x = (int) (Math.random() * rangeX);
+        int y = (int) (Math.random() * rangeY);
+        moveTo(x, y);
+    }
+
+    /**
+     * Holds down the requested mouse button.
+     * <p>
+     *
+     * @param wait Interval to wait after clicking on the element.
+     */
+    public void mouseDown(int wait) {
+        Actions action = new Actions(this.driver);
+        action.clickAndHold();
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Holds down the requested mouse button.
+     */
+    public void mouseDown() {
+        mouseDown(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Releases the requested mouse button.
+     * <p>
+     *
+     * @param wait Interval to wait after clicking on the element.
+     */
+    public void mouseUp(int wait) {
+        Actions action = new Actions(this.driver);
+        action.release();
+        action.perform();
+        wait(Math.max(0, wait));
+    }
+
+    /**
+     * Releases the requested mouse button.
+     */
+    public void mouseUp() {
+        mouseUp(this.DEFAULT_SLEEP_AFTER_ACTION);
+    }
+
+    /**
+     * Scroll Down n clicks.
+     * <p>
+     *
+     * @param clicks Number of times to scroll down.
+     */
+    public void scrollDown(int clicks) {
+        for (int i = 0; i < clicks; i++) {
+            executeJavascript("window.scrollTo(0, window.scrollY + 200)");
+            sleep(200);
+        }
+    }
+
+    /**
+     * Scroll Up n clicks.
+     * <p>
+     *
+     * @param clicks Number of times to scroll up.
+     */
+    public void scrollUp(int clicks) {
+        for (int i = 0; i < clicks; i++) {
+            executeJavascript("window.scrollTo(0, window.scrollY - 200)");
+            sleep(200);
+        }
+    }
 }
