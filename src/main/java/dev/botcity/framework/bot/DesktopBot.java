@@ -90,7 +90,7 @@ public class DesktopBot {
 	
 	/**
 	 * Set classloader for loading resources exported in JAR files.
-	 * @param classloader
+	 * @param classloader Classloader to be used.
 	 */
 	public void setResourceClassLoader(ClassLoader classloader) {
 		this.resourceClassLoader = classloader;
@@ -98,9 +98,9 @@ public class DesktopBot {
 	
 	/**
 	 * Add image of UI element to be recognized in automation processes. Check method find() and findText() to recognize such elements.
-	 * @param label
-	 * @param path
-	 * @throws IOException
+	 * @param label The image identifier.
+	 * @param path The path for the image on disk.
+	 * @throws IOException if not find the image.
 	 */
 	public void addImage(String label, String path) throws IOException {
 		File f = new File(path);
@@ -123,9 +123,8 @@ public class DesktopBot {
 	
 	/**
 	 * Add image of UI element to be recognized in automation processes. Check method find() and findText() to recognize such elements.
-	 * @param label
-	 * @param path
-	 * @throws IOException
+	 * @param label The image identifier.
+	 * @param image The image to be added.
 	 */
 	public void addImage(String label, MarvinImage image) {
 		mapImages.put(label, image);
@@ -182,7 +181,7 @@ public class DesktopBot {
 	
 	/**
 	 * Returns the last recognized UI element. In other words, the last element found by find() and findText()
-	 * @return
+	 * @return The last recognized UI element.
 	 */
 	public UIElement getLastElement() {
 		return this.lastElement;
@@ -190,8 +189,8 @@ public class DesktopBot {
 	
 	/**
 	 * Command line execution used to run commands or start applications.
-	 * @param command
-	 * @throws IOException
+	 * @param command The command to be executed.
+	 * @throws IOException If an I/O error occurs.
 	 */
 	public void exec(String command) throws IOException {
 		Runtime.getRuntime().exec(command);
@@ -199,8 +198,8 @@ public class DesktopBot {
 	
 	/**
 	 * Invoke the default browser passing a URL
-	 * @param uri
-	 * @throws IOException
+	 * @param uri The URL to be opened.
+	 * @throws IOException If an I/O error occurs.
 	 */
 	public void browse(String uri) throws IOException {
 		try {
@@ -618,6 +617,7 @@ public class DesktopBot {
 	
 	/**
 	 * Click in last found UI element.
+	 * @param el The current element.
 	 */
 	public void setCurrentElement(UIElement el) {
 		this.x = el.getX();
@@ -1070,6 +1070,7 @@ public class DesktopBot {
 	/**
 	 * Press a sequence of keys. Hold the keys in the specified order, then release them.
 	 * @param keys			array of key identification values like KeyEvent.VK_ENTER
+	 * @param interval interval between key presses.
 	 */
 	public void typeKeys(Integer interval, Integer... keys) {
 		typeKeysWithInterval(100, keys);
