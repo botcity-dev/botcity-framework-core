@@ -474,26 +474,26 @@ public class WebBot {
      * <p>
      *
      * @param by               The selector type with the selector string.
-     * @param ensure_visible   True to wait for the element to be visible.
-     * @param ensure_clickable True to wait for the element to be clickable.
-     * @param waiting_time     Maximum wait time (ms) to search for a hit.
+     * @param ensureVisible    True to wait for the element to be visible.
+     * @param ensureClickable  True to wait for the element to be clickable.
+     * @param waitingTime      Maximum wait time (ms) to search for a hit.
      * @return The {@link org.openqa.selenium.WebElement} found.
      */
-    public WebElement findElement(By by, boolean ensure_visible, boolean ensure_clickable, long waiting_time) {
+    public WebElement findElement(By by, boolean ensureVisible, boolean ensureClickable, long waitingTime) {
         ExpectedCondition<WebElement> condition;
 
-        if (ensure_visible) {
+        if (ensureVisible) {
             condition = ExpectedConditions.visibilityOfElementLocated(by);
         } else {
             condition = ExpectedConditions.presenceOfElementLocated(by);
         }
 
-        if (ensure_clickable) {
+        if (ensureClickable) {
             condition = ExpectedConditions.elementToBeClickable(by);
         }
 
         try {
-            return new WebDriverWait(this.driver, waiting_time / 1000).until(condition);
+            return new WebDriverWait(this.driver, waitingTime / 1000).until(condition);
         } catch (TimeoutException e) {
             return null;
         }
@@ -516,20 +516,20 @@ public class WebBot {
      * <p>
      *
      * @param by             The selector type with the selector string.
-     * @param ensure_visible True to wait for the element to be visible.
-     * @param waiting_time   Maximum wait time (ms) to search for a hit.
+     * @param ensureVisible  True to wait for the element to be visible.
+     * @param waitingTime    Maximum wait time (ms) to search for a hit.
      * @return The list of {@link org.openqa.selenium.WebElement} found.
      */
-    public List<WebElement> findElements(By by, boolean ensure_visible, long waiting_time) {
+    public List<WebElement> findElements(By by, boolean ensureVisible, long waitingTime) {
         ExpectedCondition<List<WebElement>> condition;
-        if (ensure_visible) {
+        if (ensureVisible) {
             condition = ExpectedConditions.visibilityOfAllElementsLocatedBy(by);
         } else {
             condition = ExpectedConditions.presenceOfAllElementsLocatedBy(by);
         }
 
         try {
-            return new WebDriverWait(this.driver, waiting_time / 1000).until(condition);
+            return new WebDriverWait(this.driver, waitingTime / 1000).until(condition);
         } catch (TimeoutException e) {
             return new ArrayList<>();
         }
