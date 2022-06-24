@@ -18,21 +18,21 @@ public class Resource {
      * Get the resource as a MarvinImage.
      * <p>
      *
-     * @param clazz     The class that contains the resource.
-     * @param imagePath The path to the resource.
+     * @param classLoader The class loader to use.
+     * @param imagePath   The path to the resource.
      * @return The resource as a {@link MarvinImage}.
      */
     @SneakyThrows
-    public static MarvinImage getResourceAsMarvinImage(Class<?> clazz, String imagePath) {
+    public static MarvinImage getResourceAsMarvinImage(ClassLoader classLoader, String imagePath) {
         if (new File(imagePath).exists()) {
             // getting image in local file
             return MarvinImageIO.loadImage(imagePath);
         }
 
         // getting image inside .jar
-        InputStream is = clazz.getResourceAsStream(imagePath);
+        InputStream is = classLoader.getResourceAsStream(imagePath);
         if (is == null) {
-            throw new ResourceNotFoundException(imagePath + " not found at /src/resources or inside jar file.");
+            throw new ResourceNotFoundException(imagePath + " not found at resources folder or inside jar file.");
         }
 
         BufferedImage bufferedImage = ImageIO.read(is);
