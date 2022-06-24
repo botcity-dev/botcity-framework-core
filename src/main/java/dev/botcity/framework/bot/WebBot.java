@@ -53,6 +53,7 @@ public class WebBot {
     private Browser browser = Browser.CHROME;
     private MutableCapabilities capabilities;
     private String downloadPath = System.getProperty("user.dir");
+    private ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 
     @Setter(AccessLevel.NONE)
     private WebDriver driver;
@@ -1485,7 +1486,7 @@ public class WebBot {
      */
     private MarvinImage getImageFromMap(String label) {
         String imagePath = images.getOrDefault(label, label + ".png");
-        return Resource.getResourceAsMarvinImage(this.getClass(), imagePath);
+        return Resource.getResourceAsMarvinImage(this.classLoader, imagePath);
     }
 
     /**
