@@ -1072,7 +1072,7 @@ public class DesktopBot {
 	 * @param keys			array of key identification values like KeyEvent.VK_ENTER
 	 * @param interval interval between key presses.
 	 */
-	public void typeKeys(Integer interval, Integer... keys) {
+	public void typeKeys(Integer... keys) {
 		typeKeysWithInterval(100, keys);
 	}
 	
