@@ -99,6 +99,43 @@ public class WebBot {
     private CVFind cvFind = new CVFind();
 
     /**
+     * Resolve relative path to absolute path.
+     * <p>
+     *
+     * @param path Relative path.
+     * @return Returns {@link File} instance.
+     */
+    private File resolvePath(String path) {
+        if (path == null || path.isEmpty()) {
+            throw new IllegalArgumentException("Path cannot be null or empty.");
+        }
+
+        if (path.startsWith("~")) {
+            path = Paths.get(System.getProperty("user.home"), path.substring(1))
+                    .normalize()
+                    .toString();
+        }
+
+        return new File(path).getAbsoluteFile();
+    }
+
+    public void setDriverPath(String path) {
+        File filepath = resolvePath(path);
+        if (!filepath.exists()) {
+            throw new IllegalArgumentException("WebDriver does not exist: " + path);
+        }
+        this.driverPath = filepath.getAbsolutePath();
+    }
+
+    public void setDownloadPath(String path) {
+        File filepath = resolvePath(path);
+        if (!filepath.exists()) {
+            filepath.mkdirs();
+        }
+        this.downloadPath = filepath.getAbsolutePath();
+    }
+
+    /**
      * Starts the selected browser.
      */
     public void startBrowser() {
