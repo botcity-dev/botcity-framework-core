@@ -24,7 +24,7 @@ public interface BrowserConfig {
      *
      * @return {@link DesiredCapabilities} with the default capabilities defined.
      */
-    DesiredCapabilities defaultCapabilities();
+    MutableCapabilities defaultCapabilities();
 
     /**
      * Wait for all downloads to finish.

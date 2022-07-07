@@ -101,12 +101,15 @@ public class ChromeConfig implements BrowserConfig {
 
         options.addArguments("--kiosk-printing");
 
+        System.setProperty("webdriver.chrome.silentOutput", "true");
+        System.setProperty("webdriver.chrome.silentLogging", "true");
+
         return options;
     }
 
     @Override
-    public DesiredCapabilities defaultCapabilities() {
-        return DesiredCapabilities.chrome();
+    public MutableCapabilities defaultCapabilities() {
+        return new ChromeOptions();
     }
 
     @Override

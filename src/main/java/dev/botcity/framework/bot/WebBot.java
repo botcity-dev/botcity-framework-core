@@ -40,6 +40,8 @@ import java.io.FileOutputStream;
 import java.io.ByteArrayInputStream;
 import java.nio.file.StandardCopyOption;
 import java.util.NoSuchElementException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Base class for Web Bots.
@@ -102,6 +104,7 @@ public class WebBot {
      * Starts the selected browser.
      */
     public void startBrowser() {
+        Logger.getLogger("org.openqa.selenium").setLevel(Level.SEVERE);
         this.config = WebDriverFactory.getWebDriver(this.browser, this.headless, this.options, this.capabilities, this.driverPath, this.downloadPath);
         this.driver = this.config.getWebDriverDriver();
         setScreenResolution();
