@@ -22,7 +22,7 @@ public interface BrowserConfig {
      * Fetch the default capabilities from the browser.
      * <p>
      *
-     * @return {@link DesiredCapabilities} with the default capabilities defined.
+     * @return {@link MutableCapabilities} with the default capabilities defined.
      */
     MutableCapabilities defaultCapabilities();
 
