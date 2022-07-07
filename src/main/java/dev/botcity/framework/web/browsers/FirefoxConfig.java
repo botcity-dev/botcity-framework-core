@@ -387,12 +387,14 @@ public class FirefoxConfig implements BrowserConfig {
         profile.setPreference("browser.helperApps.neverAsk.saveToDisk", mimetypes_to_download);
         options.setProfile(profile);
 
+        System.setProperty(FirefoxDriver.SystemProperty.BROWSER_LOGFILE, "/dev/null");
+
         return options;
     }
 
     @Override
-    public DesiredCapabilities defaultCapabilities() {
-        return DesiredCapabilities.firefox();
+    public MutableCapabilities defaultCapabilities() {
+        return new FirefoxOptions();
     }
 
     @Override

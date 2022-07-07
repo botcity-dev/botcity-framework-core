@@ -106,14 +106,15 @@ public class EdgeConfig implements BrowserConfig {
         options.addArguments("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36");
 
         options.addArguments("--kiosk-printing");
+
+        System.setProperty("webdriver.edge.silentOutput", "true");
+
         return options;
     }
 
     @Override
-    public DesiredCapabilities defaultCapabilities() {
-        DesiredCapabilities cap = DesiredCapabilities.edge();
-        cap.setPlatform(Platform.ANY);
-        return cap;
+    public MutableCapabilities defaultCapabilities() {
+        return new EdgeOptions();
     }
 
     @SneakyThrows
