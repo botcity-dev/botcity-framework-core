@@ -892,7 +892,11 @@ public class WebBot {
      */
     @SneakyThrows
     public String printPdf(String path, Map<String, Object> printOptions) {
-        String pgTitle = pageTitle().isEmpty() ? "document" : pageTitle();
+        String pgTitle = (pageTitle().isEmpty() ? "document" : pageTitle())
+                .replaceAll("[\\\\\":<>*?/|]+", "_") // replacing prohibited characters in file names
+                .replaceAll(" +", " ") // remove multiple spaces
+                .trim();
+
         int timeout = 60_000;
         String defaultPath = Paths.get(this.downloadPath, pgTitle + ".pdf").toString();
 
