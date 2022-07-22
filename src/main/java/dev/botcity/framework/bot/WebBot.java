@@ -75,6 +75,10 @@ public class WebBot {
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
     private final int DEFAULT_SLEEP_AFTER_ACTION = 300;
+    
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private WebElement html_elem = null;
 
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
@@ -2235,6 +2239,24 @@ public class WebBot {
      * @param wait Interval to wait after moving on the element.
      */
     public void moveTo(int x, int y, int wait) {
+    	if(this.browser == Browser.FIREFOX) {
+        	if(this.html_elem == null) {
+        		this.html_elem = this.driver.findElement(By.tagName("body"));
+        		this.x = 0;
+        		this.y = 0;
+        	}
+        	else {
+        		try {
+        			this.html_elem.isEnabled();
+        		}
+        		catch(StaleElementReferenceException ex) {
+        			this.html_elem = this.driver.findElement(By.tagName("body"));
+        			this.x = 0;
+            		this.y = 0;
+        		}
+        	}
+        }
+    	
         int mx = x - this.x;
         int my = y - this.y;
         this.x = x;
