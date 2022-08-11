@@ -42,6 +42,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.NoSuchElementException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.IntStream;
 
 /**
  * Base class for Web Bots.
@@ -852,6 +853,48 @@ public class WebBot {
         } catch (TimeoutException | NoSuchElementException e) {
             return false;
         }
+    }
+    
+    /**
+     * Scrolls down an element by its scroll height or a given amount defined by `start` and `end`.
+     * <p>
+     * This is useful for scrolling down a page to load more content or to scroll down a dynamically loaded element.
+     * <p>
+     * 
+     * @param element The element to scroll.
+     * @param steps Number of steps in which to conclude the scroll.
+     * @param interval Time interval between each step.
+     * @param start Start position.
+     * @param end End position.
+     */
+    public void scrollElement(WebElement element, int steps, int interval, int start, int end) {
+    	Object ele = this.executeJavascript("return arguments[0].scrollHeight;", element);
+    	int eleHeight = Integer.parseInt(ele.toString());
+    	
+    	start = Math.max(0, start);
+    	if(end != 0) {
+    		end = Math.min(eleHeight, end);
+    	}
+    	else {
+    		end = eleHeight;
+    	}
+    	
+    	IntStream.range(start, end).filter(i -> i % steps == 0).forEach(i -> {
+    		this.executeJavascript("arguments[0].scrollTo(0, arguments[1])", element, i);
+    		sleep(interval/1000);
+    	});
+    }
+    
+    /**
+     * Scrolls down an element by its scroll height or a given amount defined by `start` and `end`.
+     * <p>
+     * This is useful for scrolling down a page to load more content or to scroll down a dynamically loaded element.
+     * <p>
+     * 
+     * @param element The element to scroll.
+     */
+    public void scrollElement(WebElement element) {
+    	scrollElement(element, 100, 500, 0, 0);
     }
 
     /**
