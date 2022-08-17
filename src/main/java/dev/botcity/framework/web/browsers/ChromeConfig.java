@@ -59,7 +59,15 @@ public class ChromeConfig implements BrowserConfig {
             options.addArguments("--hide-scrollbars");
             options.addArguments("--mute-audio");
         }
-
+        
+        // Check if user is root
+        try {
+			String user = System.getProperty("user.name");
+			if(user.equals("root")) {
+				options.addArguments("--no-sandbox");
+			}
+		} catch (Exception e) {}
+        
         if (userDataDir == null || userDataDir.isEmpty()) {
             File tempDirectory = Files.createTempDirectory("botcity_").toFile();
             tempDirectory.deleteOnExit();
