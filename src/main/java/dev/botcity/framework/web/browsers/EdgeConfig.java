@@ -34,8 +34,21 @@ public class EdgeConfig implements BrowserConfig {
 
     @SneakyThrows
     @Override
-    public MutableCapabilities defaultOptions(boolean headless, String downloadFolderPath, String userDataDir) {
+    public MutableCapabilities defaultOptions(boolean headless, String downloadFolderPath, String userDataDir, PageLoadStrategy pageLoadStrategy) {
         EdgeOptions options = new EdgeOptions();
+        
+        switch(pageLoadStrategy) {
+	    	case EAGER:
+	    		options.setPageLoadStrategy(org.openqa.selenium.PageLoadStrategy.EAGER);
+	    		break;
+	    	case NONE:
+	    		options.setPageLoadStrategy(org.openqa.selenium.PageLoadStrategy.NONE);
+	    		break;
+	    	case NORMAL:
+        		options.setPageLoadStrategy(org.openqa.selenium.PageLoadStrategy.NORMAL);
+        		break;
+        }
+        
         options.addArguments("--remote-debugging-port=0");
         options.addArguments("--no-first-run");
         options.addArguments("--no-default-browser-check");
