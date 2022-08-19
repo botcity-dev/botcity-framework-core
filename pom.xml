@@ -5,14 +5,14 @@
 
 	<groupId>dev.botcity</groupId>
 	<artifactId>botcity-framework-core</artifactId>
-	<version>1.4.0</version>
+	<version>1.5.0</version>
 	<packaging>jar</packaging>
 
 	<name>botcity-framework-core</name>
 	<url>https://www.botcity.dev/</url>
 	<description>
 		Core module of the BotCity RPA framework. Basically, this module
-		provides features to recognize UI elemements and interact with it
+		provides features to recognize UI elements and interact with it
 		using mouse and keyboard actions.
 	</description>
 
