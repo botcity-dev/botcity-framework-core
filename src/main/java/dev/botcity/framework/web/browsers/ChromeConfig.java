@@ -119,6 +119,10 @@ public class ChromeConfig implements BrowserConfig {
 
         return options;
     }
+    
+    public MutableCapabilities defaultOptions(boolean headless, String downloadFolderPath, String userDataDir) {
+    	return defaultOptions(headless, downloadFolderPath, userDataDir, PageLoadStrategy.NORMAL);
+    }
 
     @Override
     public MutableCapabilities defaultCapabilities() {
