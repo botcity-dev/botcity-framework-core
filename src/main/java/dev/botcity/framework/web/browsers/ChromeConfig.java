@@ -29,8 +29,21 @@ public class ChromeConfig implements BrowserConfig {
 
     @SneakyThrows
     @Override
-    public MutableCapabilities defaultOptions(boolean headless, String downloadFolderPath, String userDataDir) {
+    public MutableCapabilities defaultOptions(boolean headless, String downloadFolderPath, String userDataDir, PageLoadStrategy pageLoadStrategy) {
         ChromeOptions options = new ChromeOptions();
+        
+        switch(pageLoadStrategy) {
+        	case EAGER:
+        		options.setPageLoadStrategy(org.openqa.selenium.PageLoadStrategy.EAGER);
+        		break;
+        	case NONE:
+        		options.setPageLoadStrategy(org.openqa.selenium.PageLoadStrategy.NONE);
+        		break;
+        	case NORMAL:
+        		options.setPageLoadStrategy(org.openqa.selenium.PageLoadStrategy.NORMAL);
+        		break;
+        }
+        
         options.addArguments("--remote-debugging-port=0");
         options.addArguments("--no-first-run");
         options.addArguments("--no-default-browser-check");
@@ -113,6 +126,10 @@ public class ChromeConfig implements BrowserConfig {
         System.setProperty("webdriver.chrome.silentLogging", "true");
 
         return options;
+    }
+    
+    public MutableCapabilities defaultOptions(boolean headless, String downloadFolderPath, String userDataDir) {
+    	return defaultOptions(headless, downloadFolderPath, userDataDir, PageLoadStrategy.NORMAL);
     }
 
     @Override

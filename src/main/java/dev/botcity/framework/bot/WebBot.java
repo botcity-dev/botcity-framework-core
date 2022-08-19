@@ -9,6 +9,7 @@ import com.google.gson.Gson;
 
 import dev.botcity.framework.web.*;
 import dev.botcity.framework.web.browsers.BrowserConfig;
+import dev.botcity.framework.web.browsers.PageLoadStrategy;
 import dev.botcity.framework.web.exceptions.ElementNotAvailableException;
 import dev.botcity.framework.web.browsers.Browser;
 
@@ -52,6 +53,7 @@ import java.util.stream.IntStream;
 public class WebBot {
     private String driverPath = "";
     private boolean headless = false;
+    private PageLoadStrategy pageLoadStrategy = PageLoadStrategy.NORMAL;
     private MutableCapabilities options;
     private Browser browser = Browser.CHROME;
     private MutableCapabilities capabilities;
@@ -147,7 +149,7 @@ public class WebBot {
      */
     public void startBrowser() {
         Logger.getLogger("org.openqa.selenium").setLevel(Level.SEVERE);
-        this.config = WebDriverFactory.getWebDriver(this.browser, this.headless, this.options, this.capabilities, this.driverPath, this.downloadPath);
+        this.config = WebDriverFactory.getWebDriver(this.browser, this.headless, this.options, this.capabilities, this.driverPath, this.downloadPath, this.pageLoadStrategy);
         this.driver = this.config.getWebDriverDriver();
         setScreenResolution();
     }

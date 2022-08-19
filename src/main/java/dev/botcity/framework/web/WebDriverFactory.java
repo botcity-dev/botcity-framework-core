@@ -24,16 +24,18 @@ public class WebDriverFactory {
      * @param capabilities the browser capabilities.
      * @param driverPath   the path to the driver.
      * @param downloadPath the path to the download folder.
+     * @param pageStrategy the page load strategy.
      * @return the Browser config instance.
      */
-    public static BrowserConfig getWebDriver(Browser browser, boolean headless, MutableCapabilities options, MutableCapabilities capabilities, String driverPath, String downloadPath) {
+    public static BrowserConfig getWebDriver(Browser browser, boolean headless, MutableCapabilities options, MutableCapabilities capabilities, String driverPath, 
+    		String downloadPath, PageLoadStrategy pageStrategy) {
         switch (browser) {
             case FIREFOX:
-                return getFirefox(headless, options, capabilities, driverPath, downloadPath);
+                return getFirefox(headless, options, capabilities, driverPath, downloadPath, pageStrategy);
             case CHROME:
-                return getChrome(headless, options, capabilities, driverPath, downloadPath);
+                return getChrome(headless, options, capabilities, driverPath, downloadPath, pageStrategy);
             case EDGE:
-                return getEdge(headless, options, capabilities, driverPath, downloadPath);
+                return getEdge(headless, options, capabilities, driverPath, downloadPath, pageStrategy);
         }
         throw new RuntimeException("Browser not supported: " + browser);
     }
@@ -47,14 +49,16 @@ public class WebDriverFactory {
      * @param capabilities the browser capabilities.
      * @param driverPath   the path to the driver.
      * @param downloadPath the path to the download folder.
+     * @param pageStrategy the page load strategy.
      * @return the Firefox Browser config instance.
      */
-    private static BrowserConfig getFirefox(boolean headless, MutableCapabilities options, MutableCapabilities capabilities, String driverPath, String downloadPath) {
+    private static BrowserConfig getFirefox(boolean headless, MutableCapabilities options, MutableCapabilities capabilities, String driverPath, 
+    		String downloadPath, PageLoadStrategy pageStrategy) {
         FirefoxConfig firefoxConfig = new FirefoxConfig();
 
         MutableCapabilities firefoxOptions;
         if (options == null) {
-            firefoxOptions = firefoxConfig.defaultOptions(headless, downloadPath, null);
+            firefoxOptions = firefoxConfig.defaultOptions(headless, downloadPath, null, pageStrategy);
         } else {
             firefoxOptions = options;
         }
@@ -87,14 +91,16 @@ public class WebDriverFactory {
      * @param capabilities the browser capabilities.
      * @param driverPath   the path to the driver.
      * @param downloadPath the path to the download folder.
+     * @param pageStrategy the page load strategy.
      * @return the Chrome Browser config instance.
      */
-    private static BrowserConfig getChrome(boolean headless, MutableCapabilities options, MutableCapabilities capabilities, String driverPath, String downloadPath) {
+    private static BrowserConfig getChrome(boolean headless, MutableCapabilities options, MutableCapabilities capabilities, String driverPath, 
+    		String downloadPath, PageLoadStrategy pageStrategy) {
         ChromeConfig chromeConfig = new ChromeConfig();
 
         MutableCapabilities chromeOptions;
         if (options == null) {
-            chromeOptions = chromeConfig.defaultOptions(headless, downloadPath, null);
+            chromeOptions = chromeConfig.defaultOptions(headless, downloadPath, null, pageStrategy);
         } else {
             chromeOptions = options;
         }
@@ -127,14 +133,16 @@ public class WebDriverFactory {
      * @param capabilities the browser capabilities.
      * @param driverPath   the path to the driver.
      * @param downloadPath the path to the download folder.
+     * @param pageStrategy the page load strategy.
      * @return the Edge Browser config instance.
      */
-    private static BrowserConfig getEdge(boolean headless, MutableCapabilities options, MutableCapabilities capabilities, String driverPath, String downloadPath) {
+    private static BrowserConfig getEdge(boolean headless, MutableCapabilities options, MutableCapabilities capabilities, String driverPath, 
+    		String downloadPath, PageLoadStrategy pageStrategy) {
         EdgeConfig edgeConfig = new EdgeConfig();
 
         MutableCapabilities edgeOptions;
         if (options == null) {
-            edgeOptions = edgeConfig.defaultOptions(headless, downloadPath, null);
+            edgeOptions = edgeConfig.defaultOptions(headless, downloadPath, null, pageStrategy);
         } else {
             edgeOptions = options;
         }

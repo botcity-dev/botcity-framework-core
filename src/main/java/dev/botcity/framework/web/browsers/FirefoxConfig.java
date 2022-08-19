@@ -358,8 +358,21 @@ public class FirefoxConfig implements BrowserConfig {
 
     @SneakyThrows
     @Override
-    public MutableCapabilities defaultOptions(boolean headless, String downloadFolderPath, String userDataDir) {
+    public MutableCapabilities defaultOptions(boolean headless, String downloadFolderPath, String userDataDir, PageLoadStrategy pageLoadStrategy) {
         FirefoxOptions options = new FirefoxOptions();
+        
+        switch(pageLoadStrategy) {
+	    	case EAGER:
+	    		options.setPageLoadStrategy(org.openqa.selenium.PageLoadStrategy.EAGER);
+	    		break;
+	    	case NONE:
+	    		options.setPageLoadStrategy(org.openqa.selenium.PageLoadStrategy.NONE);
+	    		break;
+	    	case NORMAL:
+        		options.setPageLoadStrategy(org.openqa.selenium.PageLoadStrategy.NORMAL);
+        		break;
+	    }
+        
         options.setHeadless(headless);
 
         if (userDataDir == null || userDataDir.isEmpty()) {
@@ -390,6 +403,10 @@ public class FirefoxConfig implements BrowserConfig {
         System.setProperty(FirefoxDriver.SystemProperty.BROWSER_LOGFILE, "/dev/null");
 
         return options;
+    }
+    
+    public MutableCapabilities defaultOptions(boolean headless, String downloadFolderPath, String userDataDir) {
+    	return defaultOptions(headless, downloadFolderPath, userDataDir, PageLoadStrategy.NORMAL);
     }
 
     @Override

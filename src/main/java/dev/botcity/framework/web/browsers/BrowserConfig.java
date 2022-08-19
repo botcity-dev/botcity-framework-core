@@ -14,9 +14,10 @@ public interface BrowserConfig {
      * @param headless           Whether or not to use the headless mode.
      * @param downloadFolderPath The default path in which to save files.
      * @param userDataDir        The directory to use as user profile.
+     * @param pageLoadStrategy   The page load strategy.
      * @return The Browser options.
      */
-    MutableCapabilities defaultOptions(boolean headless, String downloadFolderPath, String userDataDir);
+    MutableCapabilities defaultOptions(boolean headless, String downloadFolderPath, String userDataDir, PageLoadStrategy pageLoadStrategy);
 
     /**
      * Fetch the default capabilities from the browser.
