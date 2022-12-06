@@ -21,7 +21,7 @@ public class TableParser {
 	private String formatLabel(String label) {
 		StringBuffer buffer = new StringBuffer();
 		for (Character c : label.toCharArray()) {
-			if(Character.isLetterOrDigit(c))
+			if(Character.isLetterOrDigit(c) || Character.isSpaceChar(c))
 				buffer.append(c);
 		}
 		return buffer.toString();
