@@ -18,7 +18,7 @@ public class TableParser {
 	 * @param label The label name.
 	 * @return The formatted label name.
 	 */
-	private String formatLabel(String label) {
+	private static String formatLabel(String label) {
 		StringBuffer buffer = new StringBuffer();
 		for (Character c : label.toCharArray()) {
 			if(Character.isLetterOrDigit(c) || Character.isSpaceChar(c))
@@ -36,7 +36,7 @@ public class TableParser {
             If informed, overwrites the `cellTag` definition.
 	 * @return List of strings with the contents.
 	 */
-	public List<String> dataFromRow(WebElement row, String cellTag, String cellXpath) {
+	public static List<String> dataFromRow(WebElement row, String cellTag, String cellXpath) {
 		List<String> rowData = new ArrayList<String>(); 
 		
 		if(cellXpath != null && !cellXpath.isEmpty()) {
@@ -56,13 +56,13 @@ public class TableParser {
 	 * @param labels The labels to format.
 	 * @return The List with the formatted labels.
 	 */
-	public List<String> sanitizeHeader(List<String> labels) {
+	public static List<String> sanitizeHeader(List<String> labels) {
 		List<String> formattedLabels = new ArrayList<String>();
 		
 		// Handle Treat Empty Header
 		for(int index=0; index<labels.size(); index++) {
 			String label = labels.get(index);
-			if(!label.strip().isEmpty()) {
+			if(!label.trim().isEmpty()) {
 				// make it lowercase
 				label = label.toLowerCase();
 				
@@ -105,7 +105,7 @@ public class TableParser {
 	 *  If `cellXpath` is not informed, the row data will come from "td" elements.
 	 * @return The List with a Map for each table row.
 	 */
-	public List<Map<String, String>> tableToDict(WebElement table, boolean hasHeader, int skipRows, String headerTag, String cellXpath) {
+	public static List<Map<String, String>> tableToMapArray(WebElement table, boolean hasHeader, int skipRows, String headerTag, String cellXpath) {
 		List<String> labels = new ArrayList<String>();
 		
 		//Collect all rows from table
@@ -159,8 +159,8 @@ public class TableParser {
 	 * @param table The table element.
 	 * @return The List with a Map for each table row.
 	 */
-	public List<Map<String, String>> tableToDict(WebElement table) {
-		return tableToDict(table, true, 0, "th", null);
+	public static List<Map<String, String>> tableToMapArray(WebElement table) {
+		return tableToMapArray(table, true, 0, "th", null);
 	}
 	
 	/**
@@ -171,8 +171,8 @@ public class TableParser {
 	 * @param skipRows Number of rows to skip from the top. Defaults to 0.
 	 * @return The List with a Map for each table row.
 	 */
-	public List<Map<String, String>> tableToDict(WebElement table, boolean hasHeader, int skipRows) {
-		return tableToDict(table, hasHeader, skipRows, "th", null);
+	public static List<Map<String, String>> tableToMapArray(WebElement table, boolean hasHeader, int skipRows) {
+		return tableToMapArray(table, hasHeader, skipRows, "th", null);
 	}
 	
 	/**
@@ -184,7 +184,7 @@ public class TableParser {
 	 * @param headerTag The HTML tag associated with the header cell. Defaults to "th".
 	 * @return The List with a Map for each table row.
 	 */
-	public List<Map<String, String>> tableToDict(WebElement table, boolean hasHeader, int skipRows, String headerTag) {
-		return tableToDict(table, hasHeader, skipRows, headerTag, null);
+	public static List<Map<String, String>> tableToMapArray(WebElement table, boolean hasHeader, int skipRows, String headerTag) {
+		return tableToMapArray(table, hasHeader, skipRows, headerTag, null);
 	}
 }
