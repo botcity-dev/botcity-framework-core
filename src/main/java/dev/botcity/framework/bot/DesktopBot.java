@@ -4,6 +4,8 @@ import static org.marvinproject.plugins.collection.MarvinPluginCollection.thresh
 
 import java.awt.Desktop;
 import java.awt.Graphics2D;
+import java.awt.GraphicsConfiguration;
+import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.MouseInfo;
 import java.awt.Point;
@@ -16,7 +18,9 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.awt.image.MultiResolutionImage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -573,10 +577,21 @@ public class DesktopBot {
 	
 	private void mouseMove(int px, int py) {
 		Point p;
+		
+		GraphicsConfiguration config = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration();
+		AffineTransform affineTransform = config.getDefaultTransform();
+
+		double scaleX = affineTransform.getScaleX();
+		double scaleY = affineTransform.getScaleY();
+		
+		int pxScale = (int)(px/scaleX);
+		int pyScale = (int)(py/scaleY);
+		
 		do{
 			p = MouseInfo.getPointerInfo().getLocation();
-			robot.mouseMove(px,  py);
-		}while(p.x != px || p.y != py);
+			robot.mouseMove(pxScale, pyScale);
+
+		}while(p.x != pxScale || p.y != pyScale);
 		
 		p = MouseInfo.getPointerInfo().getLocation();
 		
@@ -1330,7 +1345,17 @@ public class DesktopBot {
 	}
 	
 	private void screenshot() {
-		screen.setBufferedImage(robot.createScreenCapture(new Rectangle(Toolkit.getDefaultToolkit().getScreenSize())));
+		MultiResolutionImage mrImage = robot.createMultiResolutionScreenCapture(new Rectangle(Toolkit.getDefaultToolkit().getScreenSize()));
+		List<Image> resolutionVariants = mrImage.getResolutionVariants();
+		Image img;
+		if (resolutionVariants.size() > 1) {
+			img = resolutionVariants.get(1);
+		} else {
+			img = resolutionVariants.get(0);
+		}
+
+		BufferedImage screenImg = toBufferedImage(img);
+		screen.setBufferedImage(screenImg);
 	}
 	
 	/**
