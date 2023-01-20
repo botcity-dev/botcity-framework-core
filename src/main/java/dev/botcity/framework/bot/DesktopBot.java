@@ -4,8 +4,6 @@ import static org.marvinproject.plugins.collection.MarvinPluginCollection.thresh
 
 import java.awt.Desktop;
 import java.awt.Graphics2D;
-import java.awt.GraphicsConfiguration;
-import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.MouseInfo;
 import java.awt.Point;
@@ -18,7 +16,6 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.MultiResolutionImage;
 import java.io.File;
@@ -46,13 +43,10 @@ import org.marvinproject.plugins.image.transform.flip.Flip;
 public class DesktopBot {
 
 	private Robot 						robot;
-	private Integer 					x,
-										y;
 	
-	private MarvinImage 				screen,
-										visualElem;
+	private MarvinImage 				screen;
 	
-	private UIElement					lastElement = new UIElement();
+	private UIElement					lastElement = null;
 	
 	private MarvinImagePlugin 			flip;
 	
@@ -226,27 +220,24 @@ public class DesktopBot {
 			robot.mousePress(InputEvent.BUTTON1_MASK);
 			robot.mouseRelease(InputEvent.BUTTON1_MASK);
 			
-			this.x = p.x;
-			this.y = p.y;
 			return true;
 		}
 		return false;
 	}
 	
 	public Integer getLastX() {
-		return this.x;
+		Point p = MouseInfo.getPointerInfo().getLocation();
+		Scale screenScale = new Scale();
+		
+		return ((int)(p.x * screenScale.getScaleX()));
 	}
 	
 	public Integer getLastY() {
-		return this.y;
+		Point p = MouseInfo.getPointerInfo().getLocation();
+		Scale screenScale = new Scale();
+		
+		return ((int)(p.y * screenScale.getScaleY()));
 	}
-	
-	
-	static int id=0;
-//	public boolean findUntil(String elementImage, int maxWaitingTime) {
-//		visualElem = MarvinImageIO.loadImage(elementImage);
-//		return findUntil(visualElem, maxWaitingTime);
-//	}
 	
 	/**
 	 * Find a text element in the UI. Text elements are processed in black and white. Therefore, avoid using this method for texts in colored backgrounds.
@@ -480,19 +471,16 @@ public class DesktopBot {
 			}
 			
 			if(p != null) {
-				this.visualElem = visualElem;
 				
 				if(debug)
 					System.out.println("found:"+p.x+","+p.y+": "+elementId);
 				
-				this.x = p.x;
-				this.y = p.y;
-				
-				lastElement.setX(p.x);
-				lastElement.setY(p.y);
-				lastElement.setImage(this.visualElem);
+				UIElement element = new UIElement(p.x, p.y, visualElem);
+				lastElement = element;
 				
 				return true;
+			}else {
+				lastElement = null;
 			}
 		}
 	}
@@ -507,7 +495,8 @@ public class DesktopBot {
 			
 			sleep(300);
 			screenshot();
-			visualElem = MarvinImageIO.loadImage(elementImage);
+			
+			MarvinImage visualElem = MarvinImageIO.loadImage(elementImage);
 			Point p = getElementCoords(visualElem, 0.95, best);
 			
 			if(p != null) {
@@ -563,81 +552,74 @@ public class DesktopBot {
 			}
 			
 			if(p != null) {
-				this.visualElem = visualElem;
 				
 				if(debug)
 					System.out.println("found:"+p.x+","+p.y+": "+elementId);
 				
-				this.x = p.x;
-				this.y = screen.getHeight()-(p.y+visualElem.getHeight());
+				int px = p.x;
+				int py = screen.getHeight()-(p.y+visualElem.getHeight());
+				UIElement element = new UIElement(px, py, visualElem);
+				lastElement = element;
+				
 				return true;
+			}else {
+				lastElement = null;
 			}
 		}
 	}
 	
 	private void mouseMove(int px, int py) {
 		Point p;
+		Scale screenScale = new Scale();
 		
-		GraphicsConfiguration config = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration();
-		AffineTransform affineTransform = config.getDefaultTransform();
-
-		double scaleX = affineTransform.getScaleX();
-		double scaleY = affineTransform.getScaleY();
-		
-		int pxScale = (int)(px/scaleX);
-		int pyScale = (int)(py/scaleY);
+		int pxScale = (int)(px/screenScale.getScaleX());
+		int pyScale = (int)(py/screenScale.getScaleY());
 		
 		do{
 			p = MouseInfo.getPointerInfo().getLocation();
 			robot.mouseMove(pxScale, pyScale);
 
 		}while(p.x != pxScale || p.y != pyScale);
-		
-		p = MouseInfo.getPointerInfo().getLocation();
-		
-		this.x = px;
-		this.y = py;
 	}
 	
 	public void clickAt(int px, int py) {
-		this.x = px;
-		this.y = py;
-		moveAndclick();
-                sleep(sleepAfterAction);
+		moveAndClick(px, py);
+        sleep(sleepAfterAction);
 	}
         
-        public void clickAt(int px, int py, int numClicks) {
-                this.x = px;
-                this.y = py;
-                for (int i = 0; i < numClicks; i++) {
-                    moveAndclick();
-                    sleep(100);                
-                }
-                sleep(sleepAfterAction);
+    public void clickAt(int px, int py, int numClicks) {
+        moveAndClick(px, py, numClicks);
+        sleep(sleepAfterAction);
 	}
 	
 	public void rightClickAt(int x, int y) {
-		this.x = x;
-		this.y = y;
-		moveAndRightClick();
+		moveAndRightClick(x, y);
+		sleep(sleepAfterAction);
 	}
 	
 	/**
 	 * Click in last found UI element.
 	 */
 	public void click() {
-		clickRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
+		if(lastElement == null) {
+			throw new RuntimeException("Element not available. Try to find an element before clicking");
+		}
+		
+		Point elementCoordsCentered = lastElement.center();
+		moveAndClick(elementCoordsCentered.x, elementCoordsCentered.y);
 		sleep(sleepAfterAction);
 	}
 	
+	public void click(int waitAfter) {
+		click();
+		sleep(waitAfter);
+	}
+	
 	/**
-	 * Click in last found UI element.
+	 * Set current UI element.
 	 * @param el The current element.
 	 */
 	public void setCurrentElement(UIElement el) {
-		this.x = el.getX();
-		this.y = el.getY();
-		this.visualElem = el.getImage();
 		this.lastElement = el;
 	}
 	
@@ -645,17 +627,25 @@ public class DesktopBot {
 	 * Right Click in last found UI element.
 	 */
 	public void rightClick() {
-		rightClickRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
+		if(lastElement == null) {
+			throw new RuntimeException("Element not available. Try to find an element before clicking");
+		}
+		
+		Point elementCoordsCentered = lastElement.center();
+		moveAndRightClick(elementCoordsCentered.x, elementCoordsCentered.y);
 		sleep(sleepAfterAction);
 	}
-	
-	
 	
 	/**
 	 * Double-click in last found UI element.
 	 */
 	public void doubleclick() {
-		doubleClickRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
+		if(lastElement == null) {
+			throw new RuntimeException("Element not available. Try to find an element before clicking");
+		}
+		
+		Point elementCoordsCentered = lastElement.center();
+		moveAndClick(elementCoordsCentered.x, elementCoordsCentered.y, 2);
 		sleep(sleepAfterAction);
 	}
 	
@@ -665,16 +655,24 @@ public class DesktopBot {
 	 * @param y 		vertical offset to the UI element.
 	 */
 	public void clickRelative(int x, int y) {
-		this.x += x;
-		this.y += y;
-		moveAndclick();
+		if(lastElement == null) {
+			throw new RuntimeException("Element not available. Try to find an element before clicking");
+		}
+		
+		int px = lastElement.getX() + x;
+		int py = lastElement.getY() + y;
+		moveAndClick(px, py);
 		sleep(sleepAfterAction);
 	}
 	
 	public void rightClickRelative(int x, int y) {
-		this.x += x;
-		this.y += y;
-		moveAndRightClick();
+		if(lastElement == null) {
+			throw new RuntimeException("Element not available. Try to find an element before clicking");
+		}
+		
+		int px = lastElement.getX() + x;
+		int py = lastElement.getY() + y;
+		moveAndRightClick(px, py);
 		sleep(sleepAfterAction);
 	}
 	
@@ -694,11 +692,13 @@ public class DesktopBot {
 	 * @param sleepBetweenClicks	time in ms between individual click events.
 	 */
 	public void doubleClickRelative(int x, int y, int sleepBetweenClicks) {
-		this.x += x;
-		this.y += y;
-		moveAndclick();
-		sleep(sleepBetweenClicks);
-		moveAndclick();
+		if(lastElement == null) {
+			throw new RuntimeException("Element not available. Try to find an element before clicking");
+		}
+		
+		int px = lastElement.getX() + x;
+		int py = lastElement.getY() + y;
+		moveAndClick(px, py, 2, sleepBetweenClicks);
 		sleep(sleepAfterAction);
 	}
 	
@@ -706,7 +706,13 @@ public class DesktopBot {
 	 * Triple-click in last found UI element.
 	 */
 	public void tripleClick() {
-		tripleClickRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
+		if(lastElement == null) {
+			throw new RuntimeException("Element not available. Try to find an element before clicking");
+		}
+		
+		Point elementCoordsCentered = lastElement.center();
+		moveAndClick(elementCoordsCentered.x, elementCoordsCentered.y, 3);
+		sleep(sleepAfterAction);
 	}
 	
 	/**
@@ -715,13 +721,13 @@ public class DesktopBot {
 	 * @param y 					vertical offset to the UI element.
 	 */
 	public void tripleClickRelative(int x, int y) {
-		this.x += x;
-		this.y += y;
-		moveAndclick();
-		sleep(100);
-		moveAndclick();
-		sleep(100);
-		moveAndclick();
+		if(lastElement == null) {
+			throw new RuntimeException("Element not available. Try to find an element before clicking");
+		}
+		
+		int px = lastElement.getX() + x;
+		int py = lastElement.getY() + y;
+		moveAndClick(px, py, 3);
 		sleep(sleepAfterAction);
 	}
         
@@ -745,7 +751,13 @@ public class DesktopBot {
 	 * Move cursor to the last found element.
 	 */
 	public void move() {
-		moveRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
+		if(lastElement == null) {
+			throw new RuntimeException("Element not available. Try to find an element before moving");
+		}
+		
+		Point elementCoordsCentered = lastElement.center();
+		mouseMove(elementCoordsCentered.x, elementCoordsCentered.y);
+		sleep(sleepAfterAction);
 	}
 	
 	/**
@@ -755,8 +767,7 @@ public class DesktopBot {
 	 */
 	public void moveTo(int x, int y) {
 		mouseMove(x, y);
-		this.x = x;
-		this.y = y;
+		sleep(sleepAfterAction);
 	}
 	
 	/**
@@ -765,14 +776,20 @@ public class DesktopBot {
 	 * @param y			vertical offset to the UI Element.
 	 */
 	public void moveRelative(int x, int y) {
-		mouseMove(this.x+x, this.y+y);
+		if(lastElement == null) {
+			throw new RuntimeException("Element not available. Try to find an element before moving");
+		}
+		
+		int px = lastElement.getX() + x;
+		int py = lastElement.getY() + y;
+		mouseMove(px, py);
+		sleep(sleepAfterAction);
 	}
-	
 	
 	public void moveRandom(int rangeX, int rangeY) {
 		int x = (int)Math.round((Math.random()*rangeX));
 		int y = (int)Math.round((Math.random()*rangeY));
-		moveRelative(x, y);
+		moveTo(x, y);
 	}
 	
 	/**
@@ -877,22 +894,27 @@ public class DesktopBot {
 		clipboard.setContents(stringSelection, null);
 	}
 	
-	
-	private void moveAndclick() {
-		mouseMove(this.x, this.y);
-		robot.mousePress(InputEvent.BUTTON1_MASK);
-		robot.mouseRelease(InputEvent.BUTTON1_MASK);
+	private void moveAndClick(int px, int py) {
+		moveAndClick(px, py, 1, 100);
 	}
 	
-	private void moveAndRightClick() {
-		mouseMove(this.x, this.y);
+	private void moveAndClick(int px, int py, int numClicks) {
+		moveAndClick(px, py, numClicks, 100);
+	}
+	
+	private void moveAndClick(int px, int py, int numClicks, int sleepBetweenClicks) {
+		mouseMove(px, py);
+		for (int i = 0; i < numClicks; i++) {
+			robot.mousePress(InputEvent.BUTTON1_MASK);
+			robot.mouseRelease(InputEvent.BUTTON1_MASK);
+            sleep(sleepBetweenClicks);                
+        }
+	}
+	
+	private void moveAndRightClick(int px, int py) {
+		mouseMove(px, py);
 		robot.mousePress(InputEvent.BUTTON3_MASK);
 		robot.mouseRelease(InputEvent.BUTTON3_MASK);
-	}
-	
-	public void click(int waitAfter) {
-		clickRelative(visualElem.getWidth()/2, visualElem.getHeight()/2);
-		sleep(waitAfter);
 	}
 	
 	private void singleKeyAction(int keyCode, int waitAfter) {
@@ -1628,9 +1650,6 @@ public class DesktopBot {
 		}
 		return null;
 	}
-	
-	//findSubimage(sub, screen, startX, startY, matching);
-	
 	
 	public MarvinSegment findSubimage
 	(
