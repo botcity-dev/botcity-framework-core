@@ -1,5 +1,7 @@
 package dev.botcity.framework.bot;
 
+import java.awt.Point;
+
 import org.marvinproject.framework.image.MarvinImage;
 
 /**
@@ -50,5 +52,12 @@ public class UIElement {
 	}
 	public Integer getHeight() {
 		return height;
+	}
+	public Point center() {
+		int elementWidth = this.getWidth()/2;
+		int elementHeight = this.getHeight()/2;
+		
+		Point coordsCentered = new Point(this.getX()+elementWidth, this.getY()+elementHeight);
+		return coordsCentered;
 	}
 }
