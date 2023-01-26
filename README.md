@@ -19,8 +19,6 @@ recognize UI elements and interact with it using mouse and keyboard actions.
 [![image](https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white)](https://www.instagram.com/botcity_dev/)
 [![image](https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white)](https://communitybotcitydev.slack.com/)
 
-
-
 ### Important Links & Docs.
 * Please use [Community BotCity](https://community.botcity.dev/) for quick answers to questions.
 * Access [Open Source RPA](https://www.botcity.dev/)
@@ -58,5 +56,12 @@ There are a number of third-party dependencies used in the project. Browse the M
     </dependency>
 </dependencies>
 ```
+
+### Contributors.
+[<img src="https://avatars.githubusercontent.com/u/13152677?v=4" width="40" height="40" style="border-radius:50%">]() [<img src="https://avatars.githubusercontent.com/u/8185425?v=4" width="40" height="40" style="border-radius:50%">]()
+[<img src="https://avatars.githubusercontent.com/u/51935281?v=4" width="40" height="40" style="border-radius:50%">]() [<img src="https://avatars.githubusercontent.com/u/65928976?v=4" width="40" height="40" style="border-radius:50%">]()
+[<img src="https://avatars.githubusercontent.com/u/29293340?v=4" width="40" height="40" style="border-radius:50%">]() [<img src="https://avatars.githubusercontent.com/u/26625054?v=4" width="40" height="40" style="border-radius:50%">]()
+[<img src="https://avatars.githubusercontent.com/u/28812519?v=4" width="40" height="40" style="border-radius:50%">]()
+
 ### Copyright
-Released under the Apache License 2.0.
+Released under the Apache [License](https://www.apache.org/licenses/LICENSE-2.0) 2.0.
