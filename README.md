@@ -37,6 +37,19 @@ There are a number of third-party dependencies used in the project. Browse the M
 
 ### Nexus Repository
 ```
+<repositories>
+    <repository>
+        <id>nexus-botcity-public</id>
+        <url>https://botcity/repository/botcity-public/</url>
+        <snapshots>
+            <enabled>true</enabled>
+        </snapshots>
+        <releases>
+            <enabled>true</enabled>
+        </releases>
+    </repository>
+</repositories>
+    
 <dependencies>
     <dependency>
         <groupId>dev.botcity</groupId>
