@@ -24,10 +24,14 @@ hs_err_pid*
 
 # Eclipse Settings
 .settings/
+.project
+.classpath
 
 # Binaries
 target/
 
 # Intellij stuffs
 .idea
+*.iws
 *.iml
+*.ipr
