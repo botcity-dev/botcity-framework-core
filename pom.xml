@@ -18,10 +18,10 @@
     </description>
 
     <properties>
-        <java.version>8</java.version>
+        <jdk.version>11</jdk.version>
         <uri-root-nexus>https://devtools.botcity.dev:8081/repository</uri-root-nexus>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven-compiler.version>3.6.1</maven-compiler.version>
+        <maven.version>3.6.1</maven.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
@@ -51,15 +51,31 @@
 
     <build>
         <sourceDirectory>src/main/java</sourceDirectory>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven.version}</version>
+                    <configuration>
+                        <source>${jdk.version}</source>
+                        <target>${jdk.version}</target>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>${maven-compiler.version}</version>
+                <version>${maven.version}</version>
                 <configuration>
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
+                    <release>${jdk.version}</release>
                 </configuration>
             </plugin>
+
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <executions>
@@ -105,6 +121,7 @@
             <groupId>com.github.kklisura.cdt</groupId>
             <artifactId>cdt-java-client</artifactId>
             <version>${cdt-java-client}</version>
+<!--            <optional>true</optional>-->
         </dependency>
 
         <dependency>
@@ -117,12 +134,14 @@
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-java</artifactId>
             <version>${selenium-java.version}</version>
+<!--            <optional>true</optional>-->
         </dependency>
 
         <dependency>
             <groupId>com.microsoft.edge</groupId>
             <artifactId>msedge-selenium-tools-java</artifactId>
             <version>${msedge-selenium.version}</version>
+<!--            <optional>true</optional>-->
         </dependency>
 
         <dependency>

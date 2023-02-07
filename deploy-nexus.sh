@@ -14,6 +14,10 @@ ERROR="\033[0;31m"
 INFO="\033[0;34m"
 SUCCESS="\033[0;32m"
 
+if [ -d "dist" ]; then
+  rm -rf dist
+fi
+
 DISTRIBUTION=$1
 echo $DISTRIBUTION
 
