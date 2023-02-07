@@ -121,7 +121,6 @@
             <groupId>com.github.kklisura.cdt</groupId>
             <artifactId>cdt-java-client</artifactId>
             <version>${cdt-java-client}</version>
-<!--            <optional>true</optional>-->
         </dependency>
 
         <dependency>
@@ -134,14 +133,12 @@
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-java</artifactId>
             <version>${selenium-java.version}</version>
-<!--            <optional>true</optional>-->
         </dependency>
 
         <dependency>
             <groupId>com.microsoft.edge</groupId>
             <artifactId>msedge-selenium-tools-java</artifactId>
             <version>${msedge-selenium.version}</version>
-<!--            <optional>true</optional>-->
         </dependency>
 
         <dependency>
