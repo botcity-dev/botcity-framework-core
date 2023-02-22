@@ -11,6 +11,7 @@ public class CVFind {
 
     private final double COLOR_SENSIBILITY = 0.04;
 
+
     /**
      * Threshold image.
      * <p>
