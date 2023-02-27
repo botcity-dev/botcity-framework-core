@@ -24,6 +24,7 @@
         <maven.version>3.6.1</maven.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <maven-javadoc.version>3.5.0</maven-javadoc.version>
 
         <marvin.version>2.0.0</marvin.version>
         <commons-io.version>2.6</commons-io.version>
@@ -79,6 +80,16 @@
                     <finalName>${project.artifactId}-${project.version}</finalName>
                     <appendAssemblyId>false</appendAssemblyId>
                     <outputDirectory>dist</outputDirectory>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven-javadoc.version}</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <reportOutputDirectory>docs</reportOutputDirectory>
                 </configuration>
             </plugin>
         </plugins>

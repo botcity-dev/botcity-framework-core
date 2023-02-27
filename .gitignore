@@ -29,6 +29,8 @@ hs_err_pid*
 
 # Binaries
 target/
+dist/
+docs/
 
 # Intellij stuffs
 .idea
