@@ -89,13 +89,6 @@
                 <version>${maven-javadoc.version}</version>
                 <configuration>
                     <source>${maven.compiler.source}</source>
-                    <tags>
-                        <tag>
-                            <name>requiredParam</name>
-                            <placement>a</placement>
-                            <head>Required Parameters:</head>
-                        </tag>
-                    </tags>
                     <reportOutputDirectory>docs</reportOutputDirectory>
                 </configuration>
             </plugin>
