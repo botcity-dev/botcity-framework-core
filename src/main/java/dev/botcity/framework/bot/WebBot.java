@@ -167,6 +167,15 @@ public class WebBot {
         try {
             this.driver.close();
             this.driver.quit();
+            
+            if(Objects.isNull(this.config.getTempDirectory())) {
+            	return;
+            }
+            Files.walk(this.config.getTempDirectory().toPath())
+            .sorted(Comparator.reverseOrder())
+            .map(Path::toFile)
+            .forEach(File::delete);
+            
         } catch (Exception ignored) {
         } finally {
             this.options = null;

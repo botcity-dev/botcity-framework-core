@@ -21,6 +21,7 @@ import java.nio.file.Files;
 public class FirefoxConfig implements BrowserConfig {
 
     private WebDriver driver;
+    private File tempDirectory;
 
     @Override
     public WebDriver getWebDriverDriver() {
@@ -376,7 +377,7 @@ public class FirefoxConfig implements BrowserConfig {
         options.setHeadless(headless);
 
         if (userDataDir == null || userDataDir.isEmpty()) {
-            File tempDirectory = Files.createTempDirectory("botcity_").toFile();
+            tempDirectory = Files.createTempDirectory("botcity_").toFile();
             tempDirectory.deleteOnExit();
             userDataDir = tempDirectory.getAbsolutePath();
         }
@@ -436,4 +437,9 @@ public class FirefoxConfig implements BrowserConfig {
     public SessionId getSessionId() {
         return ((FirefoxDriver) driver).getSessionId();
     }
+    
+    @Override
+	public File getTempDirectory() {
+		return this.tempDirectory;
+	}
 }
