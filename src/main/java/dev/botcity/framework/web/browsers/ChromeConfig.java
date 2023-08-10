@@ -22,6 +22,7 @@ import java.util.Collections;
 @Data
 public class ChromeConfig implements BrowserConfig {
     private WebDriver driver;
+    private File tempDirectory;
 
     @Getter(AccessLevel.NONE)
     @Setter(AccessLevel.NONE)
@@ -82,7 +83,7 @@ public class ChromeConfig implements BrowserConfig {
 		} catch (Exception e) {}
         
         if (userDataDir == null || userDataDir.isEmpty()) {
-            File tempDirectory = Files.createTempDirectory("botcity_").toFile();
+            tempDirectory = Files.createTempDirectory("botcity_").toFile();
             tempDirectory.deleteOnExit();
             userDataDir = tempDirectory.getAbsolutePath();
         }
@@ -164,4 +165,9 @@ public class ChromeConfig implements BrowserConfig {
     public SessionId getSessionId() {
         return ((ChromeDriver) this.driver).getSessionId();
     }
+    
+    @Override
+	public File getTempDirectory() {
+		return this.tempDirectory;
+	}
 }

@@ -1,5 +1,6 @@
 package dev.botcity.framework.web.browsers;
 
+import java.io.File;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.remote.SessionId;
 import org.openqa.selenium.MutableCapabilities;
@@ -69,4 +70,12 @@ public interface BrowserConfig {
      * @return {@link SessionId} instance.
      */
     SessionId getSessionId();
+
+    /**
+     * Get the user temporary directory.
+     * <p>
+     * 
+     * @return The File object of the user temporary directory.
+     */
+    File getTempDirectory();
 }

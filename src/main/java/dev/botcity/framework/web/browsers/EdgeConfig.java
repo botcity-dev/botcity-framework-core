@@ -24,6 +24,7 @@ import java.util.Collections;
 public class EdgeConfig implements BrowserConfig {
 
     private WebDriver driver;
+    private File tempDirectory;
 
     private Gson gson = new Gson();
 
@@ -85,7 +86,7 @@ public class EdgeConfig implements BrowserConfig {
 		} catch (Exception e) {}
 
         if (userDataDir == null || userDataDir.isEmpty()) {
-            File tempDirectory = Files.createTempDirectory("botcity_").toFile();
+            tempDirectory = Files.createTempDirectory("botcity_").toFile();
             tempDirectory.deleteOnExit();
             userDataDir = tempDirectory.getAbsolutePath();
         }
@@ -166,4 +167,9 @@ public class EdgeConfig implements BrowserConfig {
     public SessionId getSessionId() {
         return ((com.microsoft.edge.seleniumtools.EdgeDriver) driver).getSessionId();
     }
+    
+    @Override
+	public File getTempDirectory() {
+		return this.tempDirectory;
+	}
 }
