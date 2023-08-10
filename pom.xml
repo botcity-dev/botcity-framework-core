@@ -27,7 +27,7 @@
         <maven-javadoc.version>3.5.0</maven-javadoc.version>
 
         <marvin.version>2.0.0</marvin.version>
-        <commons-io.version>2.6</commons-io.version>
+        <commons-io.version>2.7</commons-io.version>
         <cdt-java-client>4.0.0</cdt-java-client>
         <commons-validator.version>1.3.1</commons-validator.version>
         <selenium-java.version>3.141.59</selenium-java.version>
